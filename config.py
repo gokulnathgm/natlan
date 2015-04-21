@@ -10,8 +10,3 @@ SECRET_KEY = "this is some kind of secret"
 IMAGE_FOLDER = 'static/files/images/'
 DOC_FOLDER = 'static/files/docs'
 
-MAIL_SERVER='smtp.gmail.com'
-MAIL_PORT=465
-MAIL_USE_SSL=True
-MAIL_USERNAME = ''
-MAIL_PASSWORD = ''
