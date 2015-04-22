@@ -57,6 +57,8 @@ def index():
 					u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+obj+"&format=json&language=en"
 					response1 = urllib2.urlopen(u)
 					data1 = json.load(response1)
+					data1['entities']['Q668']['claims']['P36'][0]['mainsnak']['datavalue']['value']['numeric-id']
+
 
 
 
