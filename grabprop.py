@@ -1,12 +1,14 @@
 from app import app
 from models import db
+import json
 import urllib2
 import json
-db.init_app(app)
+
+
+from app import Properties
+from models import db
 
 with app.app_context():
-	from app import Properties
-
 	response1 = urllib2.urlopen('https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q668&format=json&languages=en')
 	data = json.load(response1)   
 
@@ -23,7 +25,5 @@ with app.app_context():
 				db.session.add(p)
 				db.session.commit()
 
-    
 
-
-
+	
