@@ -29,12 +29,8 @@
     {% include 'navbar.html' %}
 
     <div class="container">
-
-          {% include 'flash.html'%}
-
-
         <div class="col-md-8 col-md-offset-2">
-         <h3 style="text-align:center">Ask a Qustion...</h3>
+         <h3 style="text-align:center">Ask a Question...</h3>
 
          <div class="panel panel-default">
           <div class="panel-body">
@@ -45,7 +41,9 @@
               </div>   
             </form>
           </div>
-        </div>           
+          {% include 'flash.html'%}
+        </div> 
+
     </div> <!-- /container -->
 
 

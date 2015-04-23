@@ -36,14 +36,18 @@ def index():
 				pid = pty.pid
 				app.logger.info(repr(pid))
 				del q_noun[idx]
-			else:
-				flash("Property not found",'warning')
-				return render_template('index.html',page="home")
+				#break
+			#else:
+				#flash("Property not found",'warning')
+				#return render_template('index.html',page="home")
+
+		app.logger.info(repr(q_noun))
 
 		if not q_noun:
 			flash("Please make sure that the Question is Correct..",'warning')
 			return render_template('index.html',page="home")
 
+		"""always assigns the last word in the q_noun as Qid"""	
 		for i in q_noun:
 			ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
 			response = urllib2.urlopen(ur)
@@ -63,21 +67,35 @@ def index():
 		if data['success']:
 			obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
 			if obj == "wikibase-item":
-				value_id = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['numeric-id']
-				app.logger.info(repr(value_id))
+				value=""
+				for i in range(len(data['entities'][qid]['claims'][pid])):
+
+					value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
+					app.logger.info(repr(value_id))
 				
-				u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-				response1 = urllib2.urlopen(u)
-				data2 = json.load(response1)
-				if data2['success']:
-					value = data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-					flash(value,'success')
-					return render_template('index.html',page="home")
-				else:
-					flash("Item not found",'warning')
-					return render_template('index.html',page="home")
+					u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+					response1 = urllib2.urlopen(u)
+					data2 = json.load(response1)
+					if data2['success']:
+						value = value+" "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+				flash(value,'success')
+				return render_template('index.html',page="home")
+					#else:
+					#	flash("Item not found",'warning')
+					#	return render_template('index.html',page="home")
+
+			elif obj == "string":
+				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+				flash(value,'success')
+				return render_template('index.html',page="home")
+
+			elif obj == "url":
+				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+				flash(value,'success')
+				return render_template('index.html',page="home")
+
 			else:
-				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['value']
+				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
 				flash(value,'success')
 				return render_template('index.html',page="home")
 
