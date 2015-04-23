@@ -20,12 +20,28 @@ def index():
 		question = request.form['question']
 		q_tokens = nltk.word_tokenize(question)
 		q_tagged = nltk.pos_tag(q_tokens)
+
+		grammar = "NP: {<JJ.*>*<NN.*>+}"
+		np_parser = nltk.RegexpParser(grammar)
+		np_tree = np_parser.parse(q_tagged)
+
 		q_noun = []
 
-		for i in q_tagged:
+		for i in np_tree:
+   			NPs=""
+   			if str(type(i))=="<class 'nltk.tree.Tree'>":
+   				for k in i:
+   					if NPs=="":
+   						NPs=k[0]
+   					else:
+   						NPs=NPs+"+"+k[0]
+
+   				q_noun.append(NPs)
+
+		"""for i in q_tagged:
 			k=i[1]
 			if re.search('^N', k):
-				q_noun.append(i[0])
+				q_noun.append(i[0])"""
 
 		app.logger.info(repr(q_noun))
 
@@ -50,10 +66,12 @@ def index():
 		"""always assigns the last word in the q_noun as Qid"""	
 		for i in q_noun:
 			ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
+			app.logger.info(repr(ur))
 			response = urllib2.urlopen(ur)
 			data = json.load(response)
 			app.logger.info(repr(i))
-			if data['success']:
+			if data['search']:
+				app.logger.info(repr(data))
 				qid = data['search'][0]['id']
 				app.logger.info(repr("Qid  : "+qid))
 			else:
