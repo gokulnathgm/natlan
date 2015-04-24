@@ -1,0 +1,4 @@
+import nltk
+w = nltk.word_tokenize("what is the capital of united arab emirates")
+t = nltk.pos_tag(w)
+print t

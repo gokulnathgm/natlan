@@ -95,7 +95,7 @@ def index():
 					response1 = urllib2.urlopen(u)
 					data2 = json.load(response1)
 					if data2['success']:
-						value = value+" "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+						value = value+"\n"+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 				flash(value,'success')
 				return render_template('index.html',page="home")
 					#else:
