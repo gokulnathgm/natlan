@@ -34,7 +34,9 @@ def index():
    					if NPs=="":
    						NPs=k[0]
    					else:
-   						NPs=NPs+"+"+k[0]
+   						#NPs=NPs+"+"+k[0]
+   						NPs=NPs+" "+k[0]
+
 
    				q_noun.append(NPs)
 
@@ -44,10 +46,23 @@ def index():
 				q_noun.append(i[0])"""
 
 		app.logger.info(repr(q_noun))
-
+		b=False
 		for idx,i in enumerate(q_noun):
-			pty = Properties.query.filter(Properties.label.like("%"+i+"%")).first()
-			if pty:
+			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()
+
+			for k in range(len(ptyl)):
+				app.logger.info(repr(ptyl[k].label))
+				if ptyl[k].label.lower() == i.lower():
+					pid = ptyl[k].pid
+					b=True
+					del q_noun[idx]
+					break
+
+			if b==False:
+				pty=ptyl[0]
+
+
+			#if pty:
 				app.logger.info(repr(pty))
 				pid = pty.pid
 				app.logger.info(repr(pid))
@@ -57,7 +72,14 @@ def index():
 				#flash("Property not found",'warning')
 				#return render_template('index.html',page="home")
 
+		for idx,i in enumerate(q_noun):
+			app.logger.info(repr(str(q_noun[idx])))
+			x=str(q_noun[idx]).replace(" ","+")
+			q_noun[idx]=x
+			
+
 		app.logger.info(repr(q_noun))
+		
 
 		if not q_noun:
 			flash("Please make sure that the Question is Correct..",'warning')
@@ -95,7 +117,7 @@ def index():
 					response1 = urllib2.urlopen(u)
 					data2 = json.load(response1)
 					if data2['success']:
-						value = value+"\n"+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+						value = value+"  "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 				flash(value,'success')
 				return render_template('index.html',page="home")
 					#else:
