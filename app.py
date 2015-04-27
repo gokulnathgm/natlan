@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, url_for, redirect, flash, session, g, send_file, abort
 from sqlalchemy.exc import IntegrityError
-import json,nltk,urllib2,re
+import json,nltk,urllib2,re,pattern.en
 
 
 app = Flask(__name__)
@@ -18,84 +18,86 @@ def index():
 	elif request.method == 'POST':
 		app.logger.info(repr(request.form))
 		question = request.form['question']
-		q_tokens = nltk.word_tokenize(question)
-		q_tagged = nltk.pos_tag(q_tokens)
-
-		grammar = r"""NP: {<NN.*><IN><JJ.*>}
-				{<JJ.*>*<NN.*>+}"""
+		q_tagged = pattern.en.tag(question)				#tags the question
+		app.logger.info(repr(q_tagged))
+		
+		grammar = r"""NP: {<NN.*><IN>+<JJ.*>+}			
+					{<JJ.*>*<IN>*<NN.*>+}"""					#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 
 		q_noun = []
 
-		for i in np_tree:
+		for i in np_tree:								#to get all the Noun Phrases to q_noun
    			NPs=""
-   			if str(type(i))=="<class 'nltk.tree.Tree'>":
+   			if str(type(i))=="<class 'nltk.tree.Tree'>":		
    				for k in i:
    					if NPs=="":
    						NPs=k[0]
    					else:
-   						#NPs=NPs+"+"+k[0]
    						NPs=NPs+" "+k[0]
 
 
    				q_noun.append(NPs)
 
-		"""for i in q_tagged:
-			k=i[1]
-			if re.search('^N', k):
-				q_noun.append(i[0])"""
-
 		app.logger.info(repr(q_noun))
+
+		conjuction = ["of","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
+		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
+			for j in conjuction:
+				app.logger.info(repr(q_noun[idx]))
+				q_noun[idx]=str(q_noun[idx]).replace(j+" ","")
+					
 		b=False
+		pty =False
 
-		for idx,i in enumerate(q_noun):
+		if len(q_noun) == 1:
+			pty=Properties.query.filter(Properties.pid == "P31").all()
 
-			if len(q_noun) == 1:
-				pid='P31'
-				break
+		else:
+			for idx,i in enumerate(q_noun):			#search for a property in the DB
 
-			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()
+				ptyl = False
+				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
 
-			for k in range(len(ptyl)):
-				app.logger.info(repr(ptyl[k].label+"  "+ptyl[k].pid))
-				if ptyl[k].label.lower() == i.lower():
-					pid = ptyl[k].pid
-					b=True
+				if not ptyl:
+					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
+
+				if ptyl:
+					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+						app.logger.info(repr(ptyl[k].label+"  "+ptyl[k].pid))
+						if ptyl[k].label.lower() == i.lower():
+							pty = ptyl[k]
+							b=True
+							del q_noun[idx]
+							break
+
+					pty = ptyl
+					app.logger.info(repr(pty))
 					del q_noun[idx]
-					break
+	
+		if not pty:									#property doesnt exist if pid is empty
+			flash("Property not found",'warning')
+			return render_template('index.html',page="home")
 
 
-			if b==False :
-				pty=ptyl[0]
+		if not q_noun:									#no entries to search
+			flash("Please make sure that the Question is Correct..",'warning')
+			return render_template('index.html',page="home")
 
-
-			#if pty:
-				app.logger.info(repr(pty))
-				pid = pty.pid
-				app.logger.info(repr(pid))
-				del q_noun[idx]
-				#break
-			#else:
-				#flash("Property not found",'warning')
-				#return render_template('index.html',page="home")
-
-		for idx,i in enumerate(q_noun):
+		
+		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
 			app.logger.info(repr(str(q_noun[idx])))
 			x=str(q_noun[idx]).replace(" ","+")
 			q_noun[idx]=x
 			
 
 		app.logger.info(repr(q_noun))
-		app.logger.info(repr(pid))
 
 
-		if not q_noun:
-			flash("Please make sure that the Question is Correct..",'warning')
-			return render_template('index.html',page="home")
-
-		"""always assigns the last word in the q_noun as Qid"""	
-		for i in q_noun:
+		"""finds Entity id (Qid) for elements in q_noun, searches till atleast one result is obtained"""
+		qid = False
+		for i in q_noun:			
 			ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
 			app.logger.info(repr(ur))
 			response = urllib2.urlopen(ur)
@@ -105,55 +107,67 @@ def index():
 				app.logger.info(repr(data))
 				qid = data['search'][0]['id']
 				app.logger.info(repr("Qid  : "+qid))
-			else:
-				flash("Item not found",'warning')
-				return render_template('index.html',page="home")
+				break
+		
+		if not qid:
+			flash("Can't find anything..",'warning')
+			return render_template('index.html',page="home")
 
+
+		"""find entity using qid"""
 
 		ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
 		response = urllib2.urlopen(ur)
 		data = json.load(response)
-		if data['success']:
-			obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
-			if obj == "wikibase-item":
-				value=""
-				for i in range(len(data['entities'][qid]['claims'][pid])):
 
-					value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
-					app.logger.info(repr(value_id))
-				
-					u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-					response1 = urllib2.urlopen(u)
-					data2 = json.load(response1)
-					if data2['success']:
-						value = value+"  "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-				flash(value,'success')
-				return render_template('index.html',page="home")
-					#else:
-					#	flash("Item not found",'warning')
-					#	return render_template('index.html',page="home")
+		if 'claims' in data['entities'][qid]:			#checks whether entity has any statements
+			
+			for prop in pty:
+				pid = prop.pid
+				app.logger.info(repr("pid = " + str(pid)))
+				if pid in data['entities'][qid]['claims']:	#checks whether entity has the given property
 
-			elif obj == "string":
-				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-				flash(value,'success')
-				return render_template('index.html',page="home")
+					obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
+					app.logger.info(repr(obj))
+					if obj == "wikibase-item":				#property value is another entity
+						value=""
+						for i in range(len(data['entities'][qid]['claims'][pid])):				#gets value from property page
 
-			elif obj == "url":
-				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-				flash(value,'success')
-				return render_template('index.html',page="home")
+							value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
+							app.logger.info(repr(value_id))
+						
+							u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+							response1 = urllib2.urlopen(u)
+							data2 = json.load(response1)
+							if data2['success']:
+								value = value+"  "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+							else:
+								flash("Value can't be found..",'warning')
+								return render_template('index.html',page="home")
 
-			elif obj == "globe-coordinate":
-				latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
-				lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
-				value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
-				flash(value,'success')
-				return render_template('index.html',page="home")
+						flash(value,'success')
+						return render_template('index.html',page="home")
 
-			else:
-				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
-				flash(value,'success')
-				return render_template('index.html',page="home")
+					elif obj == "string" or obj == "url":			#if property value is string or url
+						value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+						flash(value,'success')
+						return render_template('index.html',page="home")
+					
+					elif obj == "globe-coordinate":					#if property value is geo coordinates
+						latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
+						lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
+						value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
+						flash(value,'success')
+						return render_template('index.html',page="home")
+
+					else:											#for all other property values
+						value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
+						flash(value,'success')
+						return render_template('index.html',page="home")
+
+			
+			flash("Property not found",'warning')
+			return render_template('index.html',page="home")
 
 		else:
 			flash("Item not found",'warning')
