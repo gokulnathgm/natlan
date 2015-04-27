@@ -47,7 +47,13 @@ def index():
 
 		app.logger.info(repr(q_noun))
 		b=False
+
 		for idx,i in enumerate(q_noun):
+
+			if len(q_noun) == 1:
+				pid='P31'
+				break
+				
 			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()
 
 			for k in range(len(ptyl)):
@@ -58,7 +64,7 @@ def index():
 					del q_noun[idx]
 					break
 
-			if b==False:
+			if b==False :
 				pty=ptyl[0]
 
 
