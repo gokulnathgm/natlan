@@ -21,7 +21,8 @@ def index():
 		q_tokens = nltk.word_tokenize(question)
 		q_tagged = nltk.pos_tag(q_tokens)
 
-		grammar = "NP: {<JJ.*>*<NN.*>+}"
+		grammar = r"""NP: {<NN.*><IN><JJ.*>}
+				{<JJ.*>*<NN.*>+}"""
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 
@@ -53,16 +54,17 @@ def index():
 			if len(q_noun) == 1:
 				pid='P31'
 				break
-				
+
 			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()
 
 			for k in range(len(ptyl)):
-				app.logger.info(repr(ptyl[k].label))
+				app.logger.info(repr(ptyl[k].label+"  "+ptyl[k].pid))
 				if ptyl[k].label.lower() == i.lower():
 					pid = ptyl[k].pid
 					b=True
 					del q_noun[idx]
 					break
+
 
 			if b==False :
 				pty=ptyl[0]
