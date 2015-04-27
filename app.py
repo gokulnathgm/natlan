@@ -79,7 +79,8 @@ def index():
 			
 
 		app.logger.info(repr(q_noun))
-		
+		app.logger.info(repr(pid))
+
 
 		if not q_noun:
 			flash("Please make sure that the Question is Correct..",'warning')
@@ -131,6 +132,13 @@ def index():
 
 			elif obj == "url":
 				value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+				flash(value,'success')
+				return render_template('index.html',page="home")
+
+			elif obj == "globe-coordinate":
+				latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
+				lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
+				value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
 				flash(value,'success')
 				return render_template('index.html',page="home")
 
