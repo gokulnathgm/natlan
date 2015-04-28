@@ -71,6 +71,7 @@ def index():
 						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
 							if ptyl[k].label.lower() == i.lower():
 								pty.append(ptyl[k])
+								b=True
 								app.logger.info(repr("pty found by exact property"))
 								break
 
