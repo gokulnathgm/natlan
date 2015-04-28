@@ -168,16 +168,20 @@ def index():
 						app.logger.info(repr(obj))
 						if obj == "wikibase-item":				#property value is another entity
 							value=""
-							for i in range(len(data['entities'][qid]['claims'][pid])):				#gets value from property page
-
+							ct=0
+							for i in range(len(data['entities'][qid]['claims'][pid])):	
+										#gets value from property page
+								if ct>0:
+									value=value+", "		
 								value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
 								app.logger.info(repr(value_id))
 							
 								u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
 								response1 = urllib2.urlopen(u)
 								data2 = json.load(response1)
+								ct+=1
 								if data2['success']:
-									value = value+"  "+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
 									flash("Value can't be found..",'warning')
 									return render_template('index.html',page="home")
