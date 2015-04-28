@@ -52,16 +52,16 @@ def index():
 									
 		app.logger.info(repr(q_noun))
 		b=False
-		pty =False
+		pty =[]
 
 		if len(q_noun) == 1:
 			des = True
 			pty=Properties.query.filter(Properties.pid == "P31").all()
 
 		else:
+			ptyl = False
 			for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
 				for jdx, j in enumerate(q_noun[idx+1:]):
-					ptyl = False
 					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
 
 					if not ptyl:
@@ -70,14 +70,18 @@ def index():
 					if ptyl:
 						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
 							if ptyl[k].label.lower() == i.lower():
-								pty = ptyl[k]
+								pty.append(ptyl[k])
+								app.logger.info(repr("pty found by exact property"))
 								break
 
-						pty = ptyl
+						if not b:
+							pty = ptyl
 						app.logger.info(repr(pty))
 						del q_noun[idx]
 						del q_noun[jdx]
+						app.logger.info(repr("pty found by double property"))
 						break
+
 
 			if not ptyl:										#search for property in the DB with single entry of q_noun
 				for idx,i in enumerate(q_noun):	
@@ -89,15 +93,17 @@ def index():
 					if ptyl:
 						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
 							if ptyl[k].label.lower() == i.lower():
-								pty = ptyl[k]
+								pty.append(ptyl[k])
 								b=True
+								app.logger.info(repr(i))
 								break
-
-						pty = ptyl
+						if not b:
+							pty = ptyl
 						app.logger.info(repr(pty))
 						del q_noun[idx]
+						break
+				app.logger.info(repr("pty found by single property"))
 
-	
 		if not pty:									#property doesnt exist if pid is empty
 			flash("Property not found",'warning')
 			return render_template('index.html',page="home")
@@ -212,11 +218,6 @@ def index():
 			else:
 				flash("Item not found",'warning')
 				return render_template('index.html',page="home")
-
-
-    
-
-
 
 
 if __name__ == '__main__':
