@@ -22,7 +22,7 @@ def index():
 		q_tagged = pattern.en.tag(question)				#tags the question
 		app.logger.info(repr(q_tagged))
 		
-		grammar = r"""NP: {<JJ.*>*<NN.*>+}
+		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
 					{<NN.*><IN>+<JJ.*>+}"""					#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
@@ -195,7 +195,7 @@ def index():
 							time = time.split('-')
 							year = time[0][8:12]
 							day = time[2][:2]
-							month = calendar.month_name[time[1]]
+							month = calendar.month_name[int(time[1])]
 							value = "{}th {} {}".format(day,month,year)
 							flash(value,'success')
 							return render_template('index.html',page="home")
