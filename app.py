@@ -21,8 +21,8 @@ def index():
 		q_tagged = pattern.en.tag(question)				#tags the question
 		app.logger.info(repr(q_tagged))
 		
-		grammar = r"""NP: {<NN.*><IN>+<JJ.*>+}			
-					{<JJ.*>*<IN>*<NN.*>+}"""					#grammar for chunking
+		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
+					{<NN.*><IN>+<JJ.*>+}"""					#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 
@@ -42,12 +42,13 @@ def index():
 
 		app.logger.info(repr(q_noun))
 
-		conjuction = ["of","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
+		conjuction = ["of","in","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
 		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
 			for j in conjuction:
-				app.logger.info(repr(q_noun[idx]))
 				q_noun[idx]=str(q_noun[idx]).replace(j+" ","")
+				q_noun[idx]=str(q_noun[idx]).replace(" "+j,"")
 					
+		app.logger.info(repr(q_noun))
 		b=False
 		pty =False
 
@@ -65,11 +66,9 @@ def index():
 
 				if ptyl:
 					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-						app.logger.info(repr(ptyl[k].label+"  "+ptyl[k].pid))
 						if ptyl[k].label.lower() == i.lower():
 							pty = ptyl[k]
 							b=True
-							del q_noun[idx]
 							break
 
 					pty = ptyl
@@ -124,9 +123,9 @@ def index():
 			
 			for prop in pty:
 				pid = prop.pid
-				app.logger.info(repr("pid = " + str(pid)))
+				
 				if pid in data['entities'][qid]['claims']:	#checks whether entity has the given property
-
+					app.logger.info(repr("pid = " + str(pid)))
 					obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
 					app.logger.info(repr(obj))
 					if obj == "wikibase-item":				#property value is another entity
