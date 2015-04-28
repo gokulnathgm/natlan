@@ -45,9 +45,10 @@ def index():
 		conjuction = ["of","in","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
 		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
 			for j in conjuction:
-				q_noun[idx]=str(q_noun[idx]).replace(j+" ","")
-				q_noun[idx]=str(q_noun[idx]).replace(" "+j,"")
-					
+				q_noun[idx] = re.sub(r'\s'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub(r'^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub(r'\s'+j,'',q_noun[idx], flags=re.IGNORECASE)
+									
 		app.logger.info(repr(q_noun))
 		b=False
 		pty =False
