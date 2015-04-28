@@ -22,7 +22,7 @@ def index():
 		q_tagged = pattern.en.tag(question)				#tags the question
 		app.logger.info(repr(q_tagged))
 		
-		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
+		grammar = r"""NP: {<JJ.*>*<NN.*>+}
 					{<NN.*><IN>+<JJ.*>+}"""					#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
@@ -59,24 +59,44 @@ def index():
 			pty=Properties.query.filter(Properties.pid == "P31").all()
 
 		else:
-			for idx,i in enumerate(q_noun):			#search for a property in the DB
+			for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
+				for jdx, j in enumerate(q_noun[idx+1:]):
+					ptyl = False
+					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
 
-				ptyl = False
-				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
+					if not ptyl:
+						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%"+j+"%")).all()		#search in aliases
 
-				if not ptyl:
-					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
+					if ptyl:
+						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+							if ptyl[k].label.lower() == i.lower():
+								pty = ptyl[k]
+								break
 
-				if ptyl:
-					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-						if ptyl[k].label.lower() == i.lower():
-							pty = ptyl[k]
-							b=True
-							break
+						pty = ptyl
+						app.logger.info(repr(pty))
+						del q_noun[idx]
+						del q_noun[jdx]
+						break
 
-					pty = ptyl
-					app.logger.info(repr(pty))
-					del q_noun[idx]
+			if not ptyl:										#search for property in the DB with single entry of q_noun
+				for idx,i in enumerate(q_noun):	
+					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
+
+					if not ptyl:
+						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
+
+					if ptyl:
+						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+							if ptyl[k].label.lower() == i.lower():
+								pty = ptyl[k]
+								b=True
+								break
+
+						pty = ptyl
+						app.logger.info(repr(pty))
+						del q_noun[idx]
+
 	
 		if not pty:									#property doesnt exist if pid is empty
 			flash("Property not found",'warning')
