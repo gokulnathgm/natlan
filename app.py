@@ -43,12 +43,12 @@ def index():
 
 		app.logger.info(repr(q_noun))
 
-		conjuction = ["of","in","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
+		conjuction = ["with","by","of","in","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
 		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
 			for j in conjuction:
-				q_noun[idx] = re.sub(r'\s'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
-				q_noun[idx] = re.sub(r'^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
-				q_noun[idx] = re.sub(r'\s'+j,'',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub('\s'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub('^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub('\s'+j,'',q_noun[idx], flags=re.IGNORECASE)
 									
 		app.logger.info(repr(q_noun))
 		b=False
@@ -102,8 +102,9 @@ def index():
 							pty = ptyl
 						app.logger.info(repr(pty))
 						del q_noun[idx]
+						app.logger.info(repr("pty found by single property"))
 						break
-				app.logger.info(repr("pty found by single property"))
+						
 
 		if not pty:									#property doesnt exist if pid is empty
 			flash("Property not found",'warning')
