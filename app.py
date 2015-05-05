@@ -127,7 +127,7 @@ def index():
 						
 
 		if not pty:	
-			val = {'question':question,'answer':"Property not found"}								#property doesnt exist if pid is empty
+			val = {'question':question,'answer':"Sorry... Property not found"}								#property doesnt exist if pid is empty
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -162,7 +162,7 @@ def index():
 				break
 		
 		if not qid:
-			val = {'question':question,'answer':"Can't find anything.."}
+			val = {'question':question,'answer':"Sorry... Can't find anything.."}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -209,7 +209,7 @@ def index():
 								if data2['success']:
 									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
-									val = {'question':question,'answer':"Value can't be found.."}
+									val = {'question':question,'answer':"Sorry... Value can't be found.."}
 									flash(val,'warning')
 									return render_template('index.html',page="home",history=history)
 
@@ -253,12 +253,12 @@ def index():
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
 
-				val = {'question':question,'answer':"Property not found"}
+				val = {'question':question,'answer':"Sorry... Property not found"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
 			else:
-				val = {'question':question,'answer':"Item not found"}
+				val = {'question':question,'answer':"Sorry... Can't find anything"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
