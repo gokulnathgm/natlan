@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, url_for, redirect, flash, session, g, send_file, abort
 from sqlalchemy.exc import IntegrityError
+from textblob import TextBlob
 import json,nltk,urllib2,re,pattern.en,calendar
 
 
@@ -19,11 +20,14 @@ def index():
 		des = False
 		app.logger.info(repr(request.form))
 		question = request.form['question']
-		q_tagged = pattern.en.tag(question)				#tags the question
+		#q_tagged = pattern.en.tag(question)				#tags the question
+		blob = TextBlob(question)
+		q_tagged = blob.tags
 		app.logger.info(repr(q_tagged))
 		
 		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
-					{<NN.*><IN>+<JJ.*>+}"""					#grammar for chunking
+					{<NN.*><IN>+<JJ.*>+}"""	
+									#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 
