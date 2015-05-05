@@ -5,9 +5,9 @@ import json
 db.init_app(app)
 
 with app.app_context():
-	from app import Properties
-	"""db.drop_all()
-	db.create_all()"""
+	from app import Properties,History
+	"""db.drop_all()"""
+	db.create_all()
 
 	"""response1 = urllib2.urlopen('https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q668&format=json&languages=en')
 	data = json.load(response1)   

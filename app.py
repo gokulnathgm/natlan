@@ -7,7 +7,7 @@ import json,nltk,urllib2,re,pattern.en,calendar
 app = Flask(__name__)
 
 app.config.from_object('config')
-from models import Properties
+from models import Properties,History
 from models import db
 
 db.init_app(app)
@@ -15,8 +15,10 @@ db.init_app(app)
 @app.route('/', methods=['GET', 'POST'])
 def index():
 	if request.method == 'GET':
-	    return render_template('index.html',page="home")
+		history = History.query.order_by(History.id.desc()).limit(9)
+		return render_template('index.html',page="home",history=history)
 	elif request.method == 'POST':
+		history = History.query.order_by(History.id.desc()).limit(5)
 		des = False
 		app.logger.info(repr(request.form))
 		question = request.form['question']
@@ -52,9 +54,23 @@ def index():
 			for j in conjuction:
 				q_noun[idx] = re.sub('\s'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
 				q_noun[idx] = re.sub('^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
-				q_noun[idx] = re.sub('\s'+j,'',q_noun[idx], flags=re.IGNORECASE)
+				q_noun[idx] = re.sub('\s'+j+'$','',q_noun[idx], flags=re.IGNORECASE)
 									
 		app.logger.info(repr(q_noun))
+		noun_save = ""
+		for a in q_noun:
+			noun_save += " | " + a
+
+		
+		app.logger.info(repr(history))
+
+		ques = History.query.filter_by(q_noun = noun_save).first()
+		if ques:
+			value = {'question':question,'answer':ques.answer}
+			flash(value,'success')
+			return render_template('index.html',page="home",history=history)
+		
+
 		b=False
 		pty =[]
 
@@ -110,14 +126,16 @@ def index():
 						break
 						
 
-		if not pty:									#property doesnt exist if pid is empty
-			flash("Property not found",'warning')
-			return render_template('index.html',page="home")
+		if not pty:	
+			val = {'question':question,'answer':"Property not found"}								#property doesnt exist if pid is empty
+			flash(val,'warning')
+			return render_template('index.html',page="home",history=history)
 
 
 		if not q_noun:									#no entries to search
-			flash("Please make sure that the Question is Correct..",'warning')
-			return render_template('index.html',page="home")
+			val = {'question':question,'answer':"Please make sure that the Question is Correct.."}
+			flash(val,'warning')
+			return render_template('index.html',page="home",history=history)
 
 		
 		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
@@ -144,8 +162,9 @@ def index():
 				break
 		
 		if not qid:
-			flash("Can't find anything..",'warning')
-			return render_template('index.html',page="home")
+			val = {'question':question,'answer':"Can't find anything.."}
+			flash(val,'warning')
+			return render_template('index.html',page="home",history=history)
 
 
 		"""find entity using qid"""
@@ -156,8 +175,10 @@ def index():
 
 		if des == True:
 			value = data['entities'][qid]['descriptions']['en']['value']
-			flash(value,'success')
-			return render_template('index.html',page="home")
+			val = {'question':question,'answer':value}
+			flash(val,'success')
+			saveqa(question,noun_save,value)
+			return render_template('index.html',page="home",history=history)
 
 		else:
 
@@ -188,23 +209,30 @@ def index():
 								if data2['success']:
 									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
-									flash("Value can't be found..",'warning')
-									return render_template('index.html',page="home")
+									val = {'question':question,'answer':"Value can't be found.."}
+									flash(val,'warning')
+									return render_template('index.html',page="home",history=history)
 
-							flash(value,'success')
-							return render_template('index.html',page="home")
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
 
 						elif obj == "string" or obj == "url":			#if property value is string or url
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-							flash(value,'success')
-							return render_template('index.html',page="home")
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
 						
 						elif obj == "globe-coordinate":					#if property value is geo coordinates
 							latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
 							lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
 							value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
-							flash(value,'success')
-							return render_template('index.html',page="home")
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
 
 						elif obj == "time":
 							time = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['time']
@@ -213,21 +241,33 @@ def index():
 							day = time[2][:2]
 							month = calendar.month_name[int(time[1])]
 							value = "{}th {} {}".format(day,month,year)
-							flash(value,'success')
-							return render_template('index.html',page="home")
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
 
 						else:											#for all other property values
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
-							flash(value,'success')
-							return render_template('index.html',page="home")
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
 
-				
-				flash("Property not found",'warning')
-				return render_template('index.html',page="home")
+				val = {'question':question,'answer':"Property not found"}
+				flash(val,'warning')
+				return render_template('index.html',page="home",history=history)
 
 			else:
-				flash("Item not found",'warning')
-				return render_template('index.html',page="home")
+				val = {'question':question,'answer':"Item not found"}
+				flash(val,'warning')
+				return render_template('index.html',page="home",history=history)
+
+
+def saveqa(question,q_noun,answer):
+	q = History(question,q_noun,answer)
+	db.session.add(q)
+	db.session.commit()
+
 
 
 if __name__ == '__main__':

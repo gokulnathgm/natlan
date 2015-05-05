@@ -8,17 +8,7 @@
         <li>
           
           <div class="alert alert-{{category}}">
-              <span class="alert-market">
-          
-                {% if category == "success" %}
-                <i class="fa fa-thumbs-up"></i>
-                {% elif category == "danger" %}
-                <i class="fa fa-ban"></i>
-                {% endif %}
-
-              </span>
-                <strong>{{message}}</strong>
-                <button type="button" class="close" data-dismiss="alert"><i class="fa fa-times"></i></button>
+                <p>Q) {{message['question']}}</p><hr /><p>A) {{message['answer']}}</p>
           </div>
         
         </li>
