@@ -252,6 +252,13 @@ def index():
 							val= {'question':question,'answer':"Sorry... Property not supported"}
 							flash(val,'warning')
 							return render_template('index.html',page="home",history=history)
+						elif obj=="monolingualtext":
+							value= data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['text']
+							val = {'question':question,'answer':value}
+							flash(val,'success')
+							saveqa(question,noun_save,value)
+							return render_template('index.html',page="home",history=history)
+
 						else:											#for all other property values
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
 							val = {'question':question,'answer':value}
