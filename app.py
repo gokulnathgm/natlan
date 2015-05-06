@@ -69,7 +69,7 @@ def index():
 
 		ques = History.query.filter_by(q_noun = noun_save).first()
 		if ques:
-			value = {'question':question,'answer':ques.answer}
+			value = {'question':question,'answer':ques.answer, 'content' : "string"}
 			flash(value,'success')
 			return render_template('index.html',page="home",history=history)
 		
@@ -130,13 +130,13 @@ def index():
 						
 
 		if not pty:	
-			val = {'question':question,'answer':"Sorry... Property not found"}								#property doesnt exist if pid is empty
+			val = {'question':question,'answer':"Sorry... Property not found", 'content' : "string"}								#property doesnt exist if pid is empty
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
 
 		if not q_noun:									#no entries to search
-			val = {'question':question,'answer':"Please make sure that the Question is Correct.."}
+			val = {'question':question,'answer':"Please make sure that the Question is Correct..", 'content' : "string"}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -165,7 +165,7 @@ def index():
 				break
 		
 		if not qid:
-			val = {'question':question,'answer':"Sorry... Can't find anything.."}
+			val = {'question':question,'answer':"Sorry... Can't find anything..", 'content' : "string"}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -178,7 +178,7 @@ def index():
 
 		if des == True:
 			value = data['entities'][qid]['descriptions']['en']['value']
-			val = {'question':question,'answer':value}
+			val = {'question':question,'answer':value , 'content' : "string"}
 			flash(val,'success')
 			saveqa(question,noun_save,value)
 			return render_template('index.html',page="home",history=history)
@@ -212,18 +212,18 @@ def index():
 								if data2['success']:
 									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
-									val = {'question':question,'answer':"Sorry... Value can't be found.."}
+									val = {'question':question,'answer':"Sorry... Value can't be found..", 'content' : "string"}
 									flash(val,'warning')
 									return render_template('index.html',page="home",history=history)
 
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
 
 						elif obj == "string" or obj == "url":			#if property value is string or url
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
@@ -232,7 +232,7 @@ def index():
 							latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
 							lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
 							value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
@@ -244,27 +244,38 @@ def index():
 							day = time[2][:2]
 							month = calendar.month_name[int(time[1])]
 							value = "{}th {} {}".format(day,month,year)
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
 						elif obj=="commonsMedia":
-							val= {'question':question,'answer':"Sorry... Property not supported"}
-							flash(val,'warning')
-							return render_template('index.html',page="home",history=history)
+							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+							value = value.replace(" ","_")	
+							app.logger.info(repr(value))						
+							ur = "http://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&titles=Image:"+value+"&iiprop=url&format=json"
+							response1 = urllib2.urlopen(ur)
+							data2 = json.load(response1)
+							url = data2['query']['pages']['-1']['imageinfo'][0]['url']
+							if url:
+								val= {'question':question,'answer':url , 'content' : "media" }
+								flash(val,'success')
+								saveqa(question,noun_save,value)
+								return render_template('index.html',page="home",history=history)
+
+
 						else:											#for all other property values
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value)
 							return render_template('index.html',page="home",history=history)
 
-				val = {'question':question,'answer':"Sorry... Property not found"}
+				val = {'question':question,'answer':"Sorry... Property not found", 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
 			else:
-				val = {'question':question,'answer':"Sorry... Can't find anything"}
+				val = {'question':question,'answer':"Sorry... Can't find anything", 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 

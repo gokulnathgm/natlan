@@ -8,7 +8,13 @@
         <li>
           
           <div class="alert alert-{{category}}">
-                <p>Q) {{message['question']}}</p><hr /><p>A) {{message['answer']}}</p>
+                <p>Q) {{message['question']}}</p><hr />
+                {% if message['content'] == "string" %}
+                  <p>A) {{message['answer']}}</p>
+                {% endif %}
+                {% if message['content'] == "media" %}
+                  <p>A) <img src="{{message['answer']}}"/></p>
+                {% endif %}
           </div>
         
         </li>
