@@ -62,7 +62,7 @@ def index():
 		app.logger.info(repr(q_noun))
 		noun_save = ""
 		for a in q_noun:
-			noun_save += " | " + a
+			noun_save += " | " + a.lower()
 
 		
 		app.logger.info(repr(history))
@@ -240,7 +240,7 @@ def index():
 						elif obj == "time":
 							time = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['time']
 							time = time.split('-')
-							year = time[0][8:12]
+							year = time[0][1:]
 							day = time[2][:2]
 							month = calendar.month_name[int(time[1])]
 							value = "{}th {} {}".format(day,month,year)
