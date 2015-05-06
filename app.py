@@ -69,10 +69,9 @@ def index():
 
 		ques = History.query.filter_by(q_noun = noun_save).first()
 		if ques:
-			value = {'question':question,'answer':ques.answer, 'content' : "string"}
+			value = {'question':question,'answer':ques.answer, 'content' : ques.content}
 			flash(value,'success')
 			return render_template('index.html',page="home",history=history)
-		
 
 		b=False
 		pty =[]
@@ -180,7 +179,7 @@ def index():
 			value = data['entities'][qid]['descriptions']['en']['value']
 			val = {'question':question,'answer':value , 'content' : "string"}
 			flash(val,'success')
-			saveqa(question,noun_save,value)
+			saveqa(question,noun_save,value,"string")
 			return render_template('index.html',page="home",history=history)
 
 		else:
@@ -218,14 +217,14 @@ def index():
 
 							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 
 						elif obj == "string" or obj == "url":			#if property value is string or url
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
 							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 						
 						elif obj == "globe-coordinate":					#if property value is geo coordinates
@@ -234,7 +233,7 @@ def index():
 							value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
 							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 
 						elif obj == "time":
@@ -246,7 +245,7 @@ def index():
 							value = "{}th {} {}".format(day,month,year)
 							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 						elif obj=="commonsMedia":
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
@@ -259,17 +258,17 @@ def index():
 							if url:
 								val= {'question':question,'answer':url , 'content' : "media" }
 								flash(val,'success')
-								saveqa(question,noun_save,value)
+								saveqa(question,noun_save,url,"media")
 								return render_template('index.html',page="home",history=history)
 
-							val= {'question':question,'answer':"Sorry... Property not supported"}
+							val= {'question':question,'answer':"Sorry... Media not found"}
 							flash(val,'warning')
 							return render_template('index.html',page="home",history=history)
 						elif obj=="monolingualtext":
 							value= data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['text']
 							val = {'question':question,'answer':value}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 
 
@@ -277,7 +276,7 @@ def index():
 							value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
 							val = {'question':question,'answer':value , 'content' : "string"}
 							flash(val,'success')
-							saveqa(question,noun_save,value)
+							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
 
 				val = {'question':question,'answer':"Sorry... Property not found", 'content' : "string"}
@@ -290,8 +289,8 @@ def index():
 				return render_template('index.html',page="home",history=history)
 
 
-def saveqa(question,q_noun,answer):
-	q = History(question,q_noun,answer)
+def saveqa(question,q_noun,answer,content):
+	q = History(question,q_noun,answer,content)
 	db.session.add(q)
 	db.session.commit()
 

@@ -23,8 +23,10 @@ class History(db.Model):
     question = db.Column(db.String, nullable=False)
     q_noun = db.Column(db.String, nullable=False)
     answer = db.Column(db.String, nullable=False)
+    content = db.Column(db.String, nullable=False)
 
-    def __init__(self, question, q_noun, answer):
+    def __init__(self, question, q_noun, answer,content):
         self.question = question
         self.q_noun = q_noun
         self.answer = answer
+        self.content = content

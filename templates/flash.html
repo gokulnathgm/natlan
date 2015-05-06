@@ -13,8 +13,9 @@
                   <p>A) {{message['answer']}}</p>
                 {% endif %}
                 {% if message['content'] == "media" %}
-                  <p>A) <img src="{{message['answer']}}"/></p>
+                  <p><img style="max-height:150px" src="{{message['answer']}}"/></p>
                 {% endif %}
+                </div>
           </div>
         
         </li>
