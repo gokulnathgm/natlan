@@ -52,14 +52,6 @@ def index():
 
 		app.logger.info(repr(q_noun))
 
-		"""conjuction = ["with","by","of","in","as","if","as if","even","than","that","until","and","but","or","nor","for","yet","so"]
-		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
-			for j in conjuction:
-				q_noun[idx] = re.sub('\s'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
-				q_noun[idx] = re.sub('^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
-				q_noun[idx] = re.sub('\s'+j+'$','',q_noun[idx], flags=re.IGNORECASE)"""
-									
-		app.logger.info(repr(q_noun))
 		keys = []
 		key = ""
 		for k in q_noun:
@@ -139,7 +131,7 @@ def index():
 						
 
 		if not pty:	
-			answer = wikipedia.summary(key,sentences=1)
+			answer = searchwiki(key)
 			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
@@ -266,7 +258,9 @@ def index():
 							ur = "http://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&titles=Image:"+value+"&iiprop=url&format=json"
 							response1 = urllib2.urlopen(ur)
 							data2 = json.load(response1)
-							url = data2['query']['pages']['-1']['imageinfo'][0]['url']
+							for a in data2['query']['pages']:
+								url = data2['query']['pages'][a]['imageinfo'][0]['url']
+								break 
 							if url:
 								val= {'question':question,'answer':url , 'content' : "media" }
 								flash(val,'success')
@@ -290,13 +284,14 @@ def index():
 							flash(val,'success')
 							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
-				answer = wikipedia.summary(key,sentences=1)			
+				
+				answer = searchwiki(key)			
 				val = {'question':question,'answer':answer, 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
 			else:
-				answer = wikipedia.summary(key,sentences=1)
+				answer = searchwiki(key)
 				val = {'question':question,'answer':answer, 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
@@ -306,6 +301,13 @@ def saveqa(question,q_noun,answer,content):
 	q = History(question,q_noun,answer,content)
 	db.session.add(q)
 	db.session.commit()
+
+def searchwiki(question):
+	
+	key = wikipedia.search(question)
+	answer = wikipedia.summary(key[0],sentences=1)
+	app.logger.info(repr(key[0]))
+	return answer
 
 
 
