@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, url_for, redirect, flash, session, g, send_file, abort
 from sqlalchemy.exc import IntegrityError
 from textblob import TextBlob
-import json,nltk,urllib2,re,pattern.en,calendar,wikipedia
+import json,nltk,urllib2,re,pattern.en,calendar
 
 
 app = Flask(__name__)
@@ -59,17 +59,43 @@ def index():
 				q_noun[idx] = re.sub('^'+j+'\s','',q_noun[idx], flags=re.IGNORECASE)
 				q_noun[idx] = re.sub('\s'+j+'$','',q_noun[idx], flags=re.IGNORECASE)"""
 									
-		app.logger.info(repr(q_noun))
-		keys = []
-		key = ""
-		for k in q_noun:
-			keys.append(k)
+		
 
-		for k in keys:
-			key = key+" "+k
+		b=False
+		pty =[]
 
-		app.logger.info(repr(key))
-
+		if len(q_noun) == 1:
+			q_noun1=q_noun[:]
+			app.logger.info(repr(q_noun1))
+			q_noun=[]
+			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>}"""
+			np_parser = nltk.RegexpParser(grammar)
+			np_tree = np_parser.parse(q_tagged)
+			app.logger.info(repr(np_tree))
+			for i in np_tree:								#to get all the Noun Phrases to q_noun
+   				NPs=""
+   				if str(type(i))=="<class 'nltk.tree.Tree'>":		
+   					for k in i:
+   						a = re.compile("VB.*")
+						if a.match(k[1]):
+   						#if k[1]=="VB.*":
+   							q_noun.append(NPs)
+   							
+   				
+   						if NPs=="":
+   							NPs=k[0]
+   						else:
+   							NPs=NPs+" "+k[0]
+   				
+   					q_noun.append(NPs)
+   			app.logger.info(repr(q_noun))
+   			if not q_noun:
+   				q_noun=q_noun1[:]
+   				des = True
+				pty=Properties.query.filter(Properties.pid == "P31").all()
+		
+   		
+   		app.logger.info(repr(q_noun))
 		noun_save = ""
 		for a in q_noun:
 			noun_save += " | " + a.lower()
@@ -83,64 +109,55 @@ def index():
 			flash(value,'success')
 			return render_template('index.html',page="home",history=history)
 
-		b=False
-		pty =[]
+			#des = True
+			#pty=Properties.query.filter(Properties.pid == "P31").all()
 
-		if len(q_noun) == 1:
-			des = True
-			pty=Properties.query.filter(Properties.pid == "P31").all()
+		ptyl = False
+		for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
+			for jdx, j in enumerate(q_noun[idx+1:]):
+				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
+				if not ptyl:
+					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%"+j+"%")).all()		#search in aliases
+				if ptyl:
+					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+						if ptyl[k].label.lower() == i.lower():
+							pty.append(ptyl[k])
+							b=True
+							app.logger.info(repr("pty found by exact property"))
+							break
 
-		else:
-			ptyl = False
-			for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
-				for jdx, j in enumerate(q_noun[idx+1:]):
-					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
-
-					if not ptyl:
-						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%"+j+"%")).all()		#search in aliases
-
-					if ptyl:
-						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-							if ptyl[k].label.lower() == i.lower():
-								pty.append(ptyl[k])
-								b=True
-								app.logger.info(repr("pty found by exact property"))
-								break
-
-						if not b:
-							pty = ptyl
-						app.logger.info(repr(pty))
-						del q_noun[idx]
-						del q_noun[jdx]
-						app.logger.info(repr("pty found by double property"))
-						break
+					if not b:
+						pty = ptyl
+					app.logger.info(repr(pty))
+					del q_noun[idx]
+					del q_noun[jdx]
+					app.logger.info(repr("pty found by double property"))
+					break
 
 
-			if not ptyl:										#search for property in the DB with single entry of q_noun
-				for idx,i in enumerate(q_noun):	
-					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
+		if not ptyl:										#search for property in the DB with single entry of q_noun
+			for idx,i in enumerate(q_noun):	
+				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
+				if not ptyl:
+					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
 
-					if not ptyl:
-						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
-
-					if ptyl:
-						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-							if ptyl[k].label.lower() == i.lower():
-								pty.append(ptyl[k])
-								b=True
-								app.logger.info(repr(i))
-								break
-						if not b:
-							pty = ptyl
-						app.logger.info(repr(pty))
-						del q_noun[idx]
-						app.logger.info(repr("pty found by single property"))
-						break
+				if ptyl:
+					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+						if ptyl[k].label.lower() == i.lower():
+							pty.append(ptyl[k])
+							b=True
+							app.logger.info(repr(i))
+							break
+					if not b:
+						pty = ptyl
+					app.logger.info(repr(pty))
+					del q_noun[idx]
+					app.logger.info(repr("pty found by single property"))
+					break
 						
 
 		if not pty:	
-			answer = wikipedia.summary(key,sentences=1)
-			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+			val = {'question':question,'answer':"Sorry... Property not found", 'content' : "string"}								#property doesnt exist if pid is empty
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -175,8 +192,7 @@ def index():
 				break
 		
 		if not qid:
-			answer = wikipedia.summary(key,sentences=1)
-			val = {'question':question,'answer':answer, 'content' : "string"}
+			val = {'question':question,'answer':"Sorry... Can't find anything..", 'content' : "string"}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -290,14 +306,13 @@ def index():
 							flash(val,'success')
 							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
-				answer = wikipedia.summary(key,sentences=1)			
-				val = {'question':question,'answer':answer, 'content' : "string"}
+
+				val = {'question':question,'answer':"Sorry... Property not found", 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
 			else:
-				answer = wikipedia.summary(key,sentences=1)
-				val = {'question':question,'answer':answer, 'content' : "string"}
+				val = {'question':question,'answer':"Sorry... Can't find anything", 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
