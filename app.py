@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, url_for, redirect, flash, session, g, send_file, abort
 from sqlalchemy.exc import IntegrityError
 from textblob import TextBlob
-import json,nltk,urllib2,re,pattern.en,calendar
+import json,nltk,urllib2,re,pattern.en,calendar,wikipedia
 
 
 app = Flask(__name__)
@@ -158,7 +158,7 @@ def index():
 						
 
 		if not pty:	
-			answer = searchwiki(key)
+			answer = searchwiki(key,"")
 			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
@@ -207,6 +207,8 @@ def index():
 
 		if des == True:
 			value = data['entities'][qid]['descriptions']['en']['value']
+			if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+				value = searchwiki(key,value)
 			val = {'question':question,'answer':value , 'content' : "string"}
 			flash(val,'success')
 			saveqa(question,noun_save,value,"string")
@@ -312,13 +314,13 @@ def index():
 							return render_template('index.html',page="home",history=history)
 
 				
-				answer = searchwiki(key)			
+				answer = searchwiki(key,"")			
 				val = {'question':question,'answer':answer, 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
 
 			else:
-				answer = searchwiki(key)
+				answer = searchwiki(key,"")
 				val = {'question':question,'answer':answer, 'content' : "string"}
 				flash(val,'warning')
 				return render_template('index.html',page="home",history=history)
@@ -329,10 +331,13 @@ def saveqa(question,q_noun,answer,content):
 	db.session.add(q)
 	db.session.commit()
 
-def searchwiki(question):
-	
+def searchwiki(question,value):
 	key = wikipedia.search(question)
-	answer = wikipedia.summary(key[0],sentences=1)
+	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
+		m = wikipedia.page(wikipedia.search(key[0]))
+		answer = wikipedia.summary(m.title,sentences=1)
+	else:
+		answer = wikipedia.summary(key[0],sentences=1)
 	app.logger.info(repr(key[0]))
 	return answer
 
