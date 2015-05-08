@@ -160,12 +160,12 @@ def index():
 			if not pty:	
 				answer = searchwiki(key,"")
 				val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
-				flash(val,'warning')
+				flash(val,'success')
 				return render_template('index.html',page="home",history=history)
 
 
 		if not q_noun:									#no entries to search
-			val = {'question':question,'answer':"Please make sure that the Question is Correct..", 'content' : "string"}
+			val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -194,7 +194,7 @@ def index():
 				break
 		
 		if not qid:
-			val = {'question':question,'answer':"Sorry... Can't find anything..", 'content' : "string"}
+			val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 			flash(val,'warning')
 			return render_template('index.html',page="home",history=history)
 
@@ -243,7 +243,7 @@ def index():
 								if data2['success']:
 									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
-									val = {'question':question,'answer':"Sorry... Value can't be found..", 'content' : "string"}
+									val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 									flash(val,'warning')
 									return render_template('index.html',page="home",history=history)
 
@@ -295,12 +295,12 @@ def index():
 								saveqa(question,noun_save,url,"media")
 								return render_template('index.html',page="home",history=history)
 
-							val= {'question':question,'answer':"Sorry... Media not found"}
+							val= {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 							flash(val,'warning')
 							return render_template('index.html',page="home",history=history)
 						elif obj=="monolingualtext":
 							value= data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['text']
-							val = {'question':question,'answer':value}
+							val = {'question':question,'answer':value, 'content' : "string"}
 							flash(val,'success')
 							saveqa(question,noun_save,value,"string")
 							return render_template('index.html',page="home",history=history)
@@ -316,13 +316,13 @@ def index():
 				
 				answer = searchwiki(key,"")			
 				val = {'question':question,'answer':answer, 'content' : "string"}
-				flash(val,'warning')
+				flash(val,'success')
 				return render_template('index.html',page="home",history=history)
 
 			else:
 				answer = searchwiki(key,"")
 				val = {'question':question,'answer':answer, 'content' : "string"}
-				flash(val,'warning')
+				flash(val,'success')
 				return render_template('index.html',page="home",history=history)
 
 
