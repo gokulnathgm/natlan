@@ -104,6 +104,13 @@ def index():
 		
 		app.logger.info(repr(history))
 
+		if not q_noun:
+			answer = searchwiki(question,"")
+			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+			flash(val,'success')
+			return render_template('index.html',page="home",history=history)
+
+
 		ques = History.query.filter_by(q_noun = noun_save).first()
 		if ques:
 			value = {'question':question,'answer':ques.answer, 'content' : ques.content}
@@ -194,8 +201,9 @@ def index():
 				break
 		
 		if not qid:
-			val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-			flash(val,'warning')
+			answer = searchwiki(key,"")
+			val = {'question':question,'answer':answer, 'content' : "string"}
+			flash(val,'success')
 			return render_template('index.html',page="home",history=history)
 
 
