@@ -105,8 +105,25 @@ def index():
 		app.logger.info(repr(history))
 
 		if not q_noun:
-			answer = searchwiki(question,"")
-			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+			question = question.replace(' ','+')
+			ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+question+"&format=json&language=en"
+			app.logger.info(repr(ur))
+			response = urllib2.urlopen(ur)
+			data = json.load(response)
+			qid = data['search'][0]['id']
+			ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+			app.logger.info(repr(ur))
+			response = urllib2.urlopen(ur)
+			data = json.load(response)
+			value = data['entities'][qid]['descriptions']['en']['value']
+			answer=""
+			if value:
+				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+					answer = searchwiki(question,value)
+				else:
+					#answer = searchwiki(question,"")
+					answer = value
+			val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 			flash(val,'success')
 			return render_template('index.html',page="home",history=history)
 
