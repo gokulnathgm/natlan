@@ -69,7 +69,7 @@ def index():
 			q_noun1=q_noun[:]
 			app.logger.info(repr(q_noun1))
 			q_noun=[]
-			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>}"""
+			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""
 			np_parser = nltk.RegexpParser(grammar)
 			np_tree = np_parser.parse(q_tagged)
 			app.logger.info(repr(np_tree))
@@ -81,7 +81,7 @@ def index():
 						if a.match(k[1]):
    						#if k[1]=="VB.*":
    							q_noun.append(NPs)
-   							
+   							NPs=""
    				
    						if NPs=="":
    							NPs=k[0]
@@ -112,56 +112,56 @@ def index():
 
 			#des = True
 			#pty=Properties.query.filter(Properties.pid == "P31").all()
+		if not des:
+			ptyl = False
+			for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
+				for jdx, j in enumerate(q_noun[idx+1:]):
+					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
+					if not ptyl:
+						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%"+j+"%")).all()		#search in aliases
+					if ptyl:
+						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+							if ptyl[k].label.lower() == i.lower():
+								pty.append(ptyl[k])
+								b=True
+								app.logger.info(repr("pty found by exact property"))
+								break
 
-		ptyl = False
-		for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
-			for jdx, j in enumerate(q_noun[idx+1:]):
-				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
-				if not ptyl:
-					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%"+j+"%")).all()		#search in aliases
-				if ptyl:
-					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-						if ptyl[k].label.lower() == i.lower():
-							pty.append(ptyl[k])
-							b=True
-							app.logger.info(repr("pty found by exact property"))
-							break
-
-					if not b:
-						pty = ptyl
-					app.logger.info(repr(pty))
-					del q_noun[idx]
-					del q_noun[jdx]
-					app.logger.info(repr("pty found by double property"))
-					break
+						if not b:
+							pty = ptyl
+						app.logger.info(repr(pty))
+						del q_noun[idx]
+						del q_noun[jdx]
+						app.logger.info(repr("pty found by double property"))
+						break
 
 
-		if not ptyl:										#search for property in the DB with single entry of q_noun
-			for idx,i in enumerate(q_noun):	
-				ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
-				if not ptyl:
-					ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
+			if not ptyl:										#search for property in the DB with single entry of q_noun
+				for idx,i in enumerate(q_noun):	
+					ptyl = Properties.query.filter(Properties.label.like("%"+i+"%")).all()		#searches in label
+					if not ptyl:
+						ptyl = Properties.query.filter(Properties.aliases.like("%"+i+"%")).all()		#search in aliases
 
-				if ptyl:
-					for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-						if ptyl[k].label.lower() == i.lower():
-							pty.append(ptyl[k])
-							b=True
-							app.logger.info(repr(i))
-							break
-					if not b:
-						pty = ptyl
-					app.logger.info(repr(pty))
-					del q_noun[idx]
-					app.logger.info(repr("pty found by single property"))
-					break
-						
+					if ptyl:
+						for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
+							if ptyl[k].label.lower() == i.lower():
+								pty.append(ptyl[k])
+								b=True
+								app.logger.info(repr(i))
+								break
+						if not b:
+							pty = ptyl
+						app.logger.info(repr(pty))
+						del q_noun[idx]
+						app.logger.info(repr("pty found by single property"))
+						break
+							
 
-		if not pty:	
-			answer = searchwiki(key,"")
-			val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
-			flash(val,'warning')
-			return render_template('index.html',page="home",history=history)
+			if not pty:	
+				answer = searchwiki(key,"")
+				val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+				flash(val,'warning')
+				return render_template('index.html',page="home",history=history)
 
 
 		if not q_noun:									#no entries to search
