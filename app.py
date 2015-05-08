@@ -101,7 +101,6 @@ def index():
 		noun_save = ""
 		for a in q_noun:
 			noun_save += " | " + a.lower()
-
 		
 		app.logger.info(repr(history))
 
