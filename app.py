@@ -22,6 +22,7 @@ def index():
 		des = False
 		app.logger.info(repr(request.form))
 		question = request.form['question']
+		question = question.replace('?','')
 		#q_tagged = pattern.en.tag(question)				#tags the question
 		blob = TextBlob(question)
 		q_tagged = blob.tags
@@ -110,22 +111,27 @@ def index():
 			app.logger.info(repr(ur))
 			response = urllib2.urlopen(ur)
 			data = json.load(response)
-			qid = data['search'][0]['id']
-			ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
-			app.logger.info(repr(ur))
-			response = urllib2.urlopen(ur)
-			data = json.load(response)
-			value = data['entities'][qid]['descriptions']['en']['value']
-			answer=""
-			if value:
-				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
-					answer = searchwiki(question,value)
-				else:
-					#answer = searchwiki(question,"")
-					answer = value
-			val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
-			flash(val,'success')
-			return render_template('index.html',page="home",history=history)
+			if 'id' in data['search'][0]:
+				qid = data['search'][0]['id']
+				ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+				app.logger.info(repr(ur))
+				response = urllib2.urlopen(ur)
+				data = json.load(response)
+				value = data['entities'][qid]['descriptions']['en']['value']
+				answer=""
+				if value:
+					if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+						answer = searchwiki(question,value)
+					else:
+						#answer = searchwiki(question,"")
+						answer = value
+				val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+				flash(val,'success')
+				return render_template('index.html',page="home",history=history)
+			else:
+				val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
+				flash(val,'warning')
+				return render_template('index.html',page="home",history=history)
 
 
 		ques = History.query.filter_by(q_noun = noun_save).first()
