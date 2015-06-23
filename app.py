@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from textblob import TextBlob
 import json,nltk,urllib2,re,pattern.en,calendar,wikipedia
 from math import radians, cos, sin, asin, sqrt
+from datetime import date,datetime
 
 app = Flask(__name__)
 
@@ -29,7 +30,8 @@ def index():
 		app.logger.info(repr(q_tagged))
 		
 		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
-					{<NN.*><IN>+<JJ.*>+}"""	
+					{<NN.*><IN>+<JJ.*>+}					
+					{<IN>*<CD>+<MD>*<CD>*}"""	
 									#grammar for chunking
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
@@ -100,10 +102,14 @@ def index():
    		app.logger.info(repr(q_noun))
 
    		rng = False
+   		dt = False
    		for k in q_noun:
    			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k:
    				rng = True
    				break
+
+   		if ('days' in question and 'between' in question) or ('time' in question and 'duration' in question) :
+   			dt = True
 
 
 		noun_save = ""
@@ -118,7 +124,7 @@ def index():
 			flash(value,'success')
 			return render_template('index.html',page="home",history=history)
 
-		if rng == False:
+		if rng == False and dt == False:
 
 			if not q_noun:
 				question = question.replace(' ','+')
@@ -367,7 +373,7 @@ def index():
 					flash(val,'success')
 					return render_template('index.html',page="home",history=history)
 
-		else:
+		if rng == True:
 			app.logger.info(repr(q_noun))
 			for idx,k in enumerate(q_noun):
 				if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k:
@@ -417,7 +423,31 @@ def index():
 			c = 2 * asin(sqrt(a)) 
 			r = 6371 # Radius of earth in kilometers. Use 3956 for miles
 			d = int(c*r)
-			value = str(d) + " kms"
+			value = str(d) + " kms approx."
+			val = {'question':question,'answer':value, 'content' : "string"}
+			flash(val,'success')
+			saveqa(question,noun_save,value,"string")
+			return render_template('index.html',page="home",history=history)
+
+		if dt == True:
+			app.logger.info(repr(q_noun))
+			bkp=[]
+			for idx,i in enumerate(q_noun):
+				if i == 'number' or i == 'days' or i == 'day' or i == 'time duration':
+					continue
+				else:
+					bkp.append(i)
+			q_noun = bkp[:]
+			app.logger.info(repr(q_noun))
+			for idx,i in enumerate(q_noun):
+				q_noun[idx] = i.replace('/','-')
+			app.logger.info(repr(q_noun))
+
+			date_format = "%d-%m-%Y"
+			a = datetime.strptime(q_noun[0], date_format)
+			b = datetime.strptime(q_noun[1], date_format)
+			delta = b - a
+			value = str(delta.days) + " days"
 			val = {'question':question,'answer':value, 'content' : "string"}
 			flash(val,'success')
 			saveqa(question,noun_save,value,"string")
