@@ -31,7 +31,7 @@ def index():
 		app.logger.info(repr(q_tagged))
 		
 
-		grammar=r"""NP: {<NN><IN>*<DT><JJ.*>*<NN.*>*<NNS><IN>*<DT>*<NN.*>*}"""
+		grammar=r"""NP: {<JJ.*>*<NNS><IN>*<DT>*<NN.*>*}"""
 		np_parser=nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 		app.logger.info(repr(np_tree))
@@ -310,6 +310,7 @@ def index():
 						if data2['success']:
 							if 'labels' in data2['entities']['Q'+str(value_id)]:
 								value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+								app.logger.info(repr(value))
 							else:
 								continue
 						else:
