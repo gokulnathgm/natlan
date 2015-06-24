@@ -310,7 +310,6 @@ def index():
 						if data2['success']:
 							if 'labels' in data2['entities']['Q'+str(value_id)]:
 								value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-								app.logger.info(repr(value))
 							else:
 								continue
 						else:
