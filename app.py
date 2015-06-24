@@ -20,6 +20,8 @@ def index():
 	elif request.method == 'POST':
 		history = History.query.order_by(History.id.desc()).limit(5)
 		des = False
+		grammar1=False
+		grammar2=False
 		app.logger.info(repr(request.form))
 		question = request.form['question']
 		question = question.replace('?','')
@@ -28,30 +30,65 @@ def index():
 		q_tagged = blob.tags
 		app.logger.info(repr(q_tagged))
 		
-		grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
-					{<NN.*><IN>+<JJ.*>+}"""	
-									#grammar for chunking
-		np_parser = nltk.RegexpParser(grammar)
+
+		grammar=r"""NP: {<NN><IN>*<DT><JJ.*>*<NN.*>*<NNS><IN>*<DT>*<NN.*>*}"""
+		np_parser=nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
-
+		app.logger.info(repr(np_tree))
 		q_noun = []
+		a=re.compile("JJ.*")
+		for i in np_tree:
+			NPs=""
+			f=False
+			if str(type(i))=="<class 'nltk.tree.Tree'>":
+				grammar2=True
+				for k in i:
+					if a.match(k[1]) or k[1]=="NNS":
+						f=True 
 
-		for i in np_tree:								#to get all the Noun Phrases to q_noun
-   			NPs=""
-   			if str(type(i))=="<class 'nltk.tree.Tree'>":		
-   				for k in i:
-   					if k[1]=="IN":
-   						continue
-   					else:
-   						if NPs=="":
-   							NPs=k[0]
-   						else:
-   							NPs=NPs+" "+k[0]
+					if k[1]=="NNS":
+						t=pattern.en.singularize(k[0])
+						if NPs=="":
+							NPs=t
+						else:
+							NPs=NPs+" "+t
+						continue
+					if f==True:
+						if NPs=="":
+							NPs=k[0]
+						else:
+							NPs=NPs+" "+k[0]
+				q_noun.append(NPs)
+
+			app.logger.info(repr(q_noun))
+		if not q_noun:
+		
+			grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
+						{<NN.*><IN>+<JJ.*>+}
+						{<IN>*<CD>+<MD>*<CD>*}"""	
+										#grammar for chunking
+			np_parser = nltk.RegexpParser(grammar)
+			np_tree = np_parser.parse(q_tagged)
+
+			q_noun = []
+			app.logger.info(repr(np_tree))
+			for i in np_tree:								#to get all the Noun Phrases to q_noun
+	   			NPs=""
+	   			if str(type(i))=="<class 'nltk.tree.Tree'>":
+	   				grammar1=True		
+	   				for k in i:
+	   					if k[1]=="IN":
+	   						continue
+	   					else:
+	   						if NPs=="":
+	   							NPs=k[0]
+	   						else:
+	   							NPs=NPs+" "+k[0]
 
 
-   				q_noun.append(NPs)
+	   				q_noun.append(NPs)
 
-		app.logger.info(repr(q_noun))
+			app.logger.info(repr(q_noun))
 
 
 		keys = []
@@ -66,7 +103,7 @@ def index():
 		b=False
 		pty =[]
 
-		if len(q_noun) == 1:
+		if len(q_noun) == 1 and grammar1==True:
 			q_noun1=q_noun[:]
 			app.logger.info(repr(q_noun1))
 			q_noun=[]
@@ -103,6 +140,7 @@ def index():
    		for k in q_noun:
    			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k:
    				rng = True
+   				app.logger.info(repr("range query"))
    				break
 
 
@@ -126,6 +164,7 @@ def index():
 				app.logger.info(repr(ur))
 				response = urllib2.urlopen(ur)
 				data = json.load(response)
+
 				if 'id' in data['search'][0]:
 					qid = data['search'][0]['id']
 					ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
@@ -198,7 +237,7 @@ def index():
 							break
 								
 
-				if not pty:	
+				if not pty and grammar2==False:	
 					answer = searchwiki(key,"")
 					val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
@@ -246,7 +285,43 @@ def index():
 			ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
 			response = urllib2.urlopen(ur)
 			data = json.load(response)
-
+			if grammar2==True:
+				qid1=qid[1:]
+				qid=qid1[:]
+				app.logger.info(repr(qid))
+				ur="https://wdq.wmflabs.org/api?q=claim[39:"+qid+"]"
+				app.logger.info(repr(ur))
+				response = urllib2.urlopen(ur)
+				data = json.load(response)
+				value=""
+				ct=0
+				if data['status']['items']!=0:
+					for i in range(len(data['items'])):	
+						#gets value from property page
+						if ct>0:
+							value=value+", "		
+						value_id = data['items'][i]
+						app.logger.info(repr(value_id))
+									
+						u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+						response1 = urllib2.urlopen(u)
+						data2 = json.load(response1)
+						ct+=1
+						if data2['success']:
+							if 'labels' in data2['entities']['Q'+str(value_id)]:
+								value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+							else:
+								continue
+						else:
+							val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
+							flash(val,'warning')
+							return render_template('index.html',page="home",history=history)
+				else:
+					value = searchwiki(key,value)
+				val = {'question':question,'answer':value ,'content':"string"}
+				flash(val,'success')
+				saveqa(question,noun_save,value,"string")
+				return render_template('index.html',page="home",history=history)
 			if des == True:
 				value = data['entities'][qid]['descriptions']['en']['value']
 				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
@@ -256,7 +331,7 @@ def index():
 				saveqa(question,noun_save,value,"string")
 				return render_template('index.html',page="home",history=history)
 
-			else:
+			elif not grammar2:
 
 				if 'claims' in data['entities'][qid]:			#checks whether entity has any statements
 					
@@ -426,6 +501,7 @@ def index():
 
 
 def saveqa(question,q_noun,answer,content):
+	app.logger.info(repr("in fn"))
 	q = History(question,q_noun,answer,content)
 	db.session.add(q)
 	db.session.commit()
