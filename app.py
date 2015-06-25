@@ -463,8 +463,11 @@ def index():
 			ur1 = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+loc1+"&format=json&language=en"
 			response1 = urllib2.urlopen(ur1)
 			data1 = json.load(response1)
-			if data1['search'][0]['description'] == "Wikimedia disambiguation page" or data1['search'][0]['description'] == "Wikipedia disambiguation page":
-				qid1 = data1['search'][1]['id']
+			if 'description' in data1['search'][0]:
+				if data1['search'][0]['description'] == "Wikimedia disambiguation page" or data1['search'][0]['description'] == "Wikipedia disambiguation page":
+					qid1 = data1['search'][1]['id']
+				else:
+					qid1 = data1['search'][0]['id']
 			else:
 				qid1 = data1['search'][0]['id']
 			ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid1+"&format=json&language=en"
@@ -472,12 +475,15 @@ def index():
 			data = json.load(response)
 			latvalue1 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['latitude']
 			lonvalue1 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['longitude']
-
+			app.logger.info(repr(str(latvalue1))+"  "+str(lonvalue1))
 			ur1 = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+loc2+"&format=json&language=en"
 			response1 = urllib2.urlopen(ur1)
 			data1 = json.load(response1)
-			if data1['search'][0]['description'] == "Wikimedia disambiguation page" or data1['search'][0]['description'] == "Wikipedia disambiguation page":
-				qid1 = data1['search'][1]['id']
+			if 'description' in data1['search'][0]:
+				if data1['search'][0]['description'] == "Wikimedia disambiguation page" or data1['search'][0]['description'] == "Wikipedia disambiguation page":
+					qid1 = data1['search'][1]['id']
+				else:
+					qid1 = data1['search'][0]['id']
 			else:
 				qid1 = data1['search'][0]['id']
 			ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid1+"&format=json&language=en"
@@ -485,7 +491,7 @@ def index():
 			data = json.load(response)
 			latvalue2 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['latitude']
 			lonvalue2 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['longitude']
-
+			app.logger.info(repr(str(latvalue2))+"  "+str(lonvalue2))
 			# convert decimal degrees to radians 
 			lon1, lat1, lon2, lat2 = map(radians, [lonvalue1, latvalue1, lonvalue2, latvalue2])
 
