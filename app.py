@@ -31,7 +31,7 @@ def index():
 		q_tagged = blob.tags
 		app.logger.info(repr(q_tagged))
 
-		grammar=r"""NP: {<JJ.*>*<NNS><IN>*<DT>*<NN.*>*}"""
+		grammar=r"""NP: {<JJ.*>*<NNS><IN>*<DT>*<NN.*>+}""" #grammar for list all type questions
 		np_parser=nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 		app.logger.info(repr(np_tree))
@@ -63,10 +63,10 @@ def index():
 			app.logger.info(repr(q_noun))
 		if not q_noun:
 		
-			grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
+			grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+} 
 						{<NN.*><IN>+<JJ.*>+}
-						{<IN>*<CD>+<MD>*<CD>*}"""	
-										#grammar for chunking
+						{<IN>*<CD>+<MD>*<CD>*}"""	#grammar for general type questions
+										
 			np_parser = nltk.RegexpParser(grammar)
 			np_tree = np_parser.parse(q_tagged)
 
@@ -107,7 +107,7 @@ def index():
 			q_noun1=q_noun[:]
 			app.logger.info(repr(q_noun1))
 			q_noun=[]
-			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""
+			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""  #grammar for indirect type questions
 			np_parser = nltk.RegexpParser(grammar)
 			np_tree = np_parser.parse(q_tagged)
 			app.logger.info(repr(np_tree))
@@ -139,7 +139,7 @@ def index():
    		rng = False
    		dt = False
    		for k in q_noun:
-   			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k:
+   			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k or 'how far' in question:
    				rng = True
    				app.logger.info(repr("range query"))
    				break
@@ -535,6 +535,7 @@ def saveqa(question,q_noun,answer,content):
 	db.session.commit()
 
 def searchwiki(question,value):
+	app.logger.info(repr("search wiki fn"))
 	key = wikipedia.search(question)
 	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
 		m = wikipedia.page(wikipedia.search(key[0]))
