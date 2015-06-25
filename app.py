@@ -270,7 +270,10 @@ def index():
 					app.logger.info(repr(i))
 					if data['search']:
 						app.logger.info(repr(data))
-						qid = data['search'][0]['id']
+						if data['search'][0]['description'] == 'Wikipedia disambiguation page' or data['search'][0]['description'] == 'Wikimedia disambiguation page':
+							qid = data['search'][1]['id']
+						else:
+							qid = data['search'][0]['id']
 						app.logger.info(repr("Qid  : "+qid))
 						break
 				if not qid and grammar2 == True:
