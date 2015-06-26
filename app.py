@@ -512,7 +512,7 @@ def index():
 						value = data['search'][0]['description']
 						if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
 							value = searchwiki(key,value)
-						else:
+						"""else:
 							qid = data['search'][0]['id']
 							ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
 							app.logger.info(repr(ur))
@@ -529,12 +529,15 @@ def index():
 									#answer = searchwiki(question,"")
 									answer = value
 							else:
-								answer=searchwiki(question,"string")
+								answer=searchwiki(question,"string")"""
 
 					else:
 						app.logger.info(repr(key))
 						value=searchwiki(key,"string")
 
+				else:
+					value=searchwiki(key,"string")
+					
 
 
 				val = {'question':question,'answer':value , 'content' : "string"}
@@ -763,6 +766,7 @@ def saveqa(question,q_noun,answer,content):
 	db.session.commit()
 
 def searchwiki(question,value):
+	app.logger.info(repr("search wikipedia"))
 	key = wikipedia.search(question)
 	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
 		m = wikipedia.page(wikipedia.search(key[0]))
