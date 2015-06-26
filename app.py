@@ -261,6 +261,8 @@ def index():
 
 			"""finds Entity id (Qid) for elements in q_noun, searches till atleast one result is obtained"""
 			if grammar2==True:
+				gr=False
+
 				qid = False
 				for i in q_noun:			
 					ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
@@ -270,13 +272,82 @@ def index():
 					app.logger.info(repr(i))
 					if data['search']:
 						app.logger.info(repr(data))
-						if data['search'][0]['description'] == 'Wikipedia disambiguation page' or data['search'][0]['description'] == 'Wikimedia disambiguation page':
-							qid = data['search'][1]['id']
+						if 'description' in data['search'][0]:
+							if data['search'][0]['description'] == 'Wikipedia disambiguation page' or data['search'][0]['description'] == 'Wikimedia disambiguation page':
+								qid = data['search'][1]['id']
+							else:
+								qid = data['search'][0]['id']
 						else:
 							qid = data['search'][0]['id']
 						app.logger.info(repr("Qid  : "+qid))
 						break
-				if not qid and grammar2 == True:
+				if qid:
+					ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+					response = urllib2.urlopen(ur)
+					data = json.load(response)
+					
+					qid1=qid[1:]
+					qid=qid1[:]
+					app.logger.info(repr(qid))
+					ur="https://wdq.wmflabs.org/api?q=claim[39:"+qid+"]"
+					app.logger.info(repr(ur))
+					response = urllib2.urlopen(ur)
+					data = json.load(response)
+					value=""
+					ct=0
+					if data['status']['items']!=0:
+						gr=True
+						for i in range(len(data['items'])):	
+									#gets value from property page
+							if ct>0:
+								value=value+", "		
+							value_id = data['items'][i]
+							app.logger.info(repr(value_id))
+												
+							u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+							response1 = urllib2.urlopen(u)
+							data2 = json.load(response1)
+							ct+=1
+							if data2['success']:
+								if 'labels' in data2['entities']['Q'+str(value_id)]:
+									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+								else:
+									continue
+							else:
+								val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
+								flash(val,'warning')
+								return render_template('index.html',page="home",history=history)
+
+
+					else:
+						ur="https://wdq.wmflabs.org/api?q=claim[31:"+qid+"]"
+						app.logger.info(repr(ur))
+						response = urllib2.urlopen(ur)
+						data = json.load(response)
+						value=""
+						ct=0
+						if data['status']['items']!=0:
+							gr=True
+							for i in range(len(data['items'])):	
+								#gets value from property page
+								if ct>0:
+									value=value+", "		
+								value_id = data['items'][i]
+								app.logger.info(repr(value_id))
+													
+								u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+								response1 = urllib2.urlopen(u)
+								data2 = json.load(response1)
+								ct+=1
+								if data2['success']:
+									if 'labels' in data2['entities']['Q'+str(value_id)]:
+										value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+									else:
+										continue
+						else:
+							gr=False
+
+				elif not qid or gr==False:
 				
 					for i in np_tree:
 						NPs=""
@@ -334,6 +405,7 @@ def index():
 									app.logger.info(repr(value_id))
 									pty=[]	
 									ptyl=[]
+									b=False
 									u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
 									response1 = urllib2.urlopen(u)
 									data2 = json.load(response1)
@@ -345,131 +417,72 @@ def index():
 
 										if ptyl:
 											for k in range(len(ptyl)):											#Strict comparison if >1 ptys found
-												if ptyl[k].label.lower() == value.lower():
-													pty.append(ptyl[k])
-													#b=True
-													app.logger.info(repr(i))
+												if ptyl[k].label.lower() == value.lower():#or value.lower() in ptyl[k].aliases.lower():
+													pty = ptyl[k]
+													b=True
+													app.logger.info(repr(value))
 													break
-											#if not b:
-												#pty = ptyl
+											if not b:
+												continue
 											app.logger.info(repr(pty))
-											app.logger.info(repr("pty found by single property"))
-											for prop in pty:
-												pid = prop.pid
-												app.logger.info(repr("Pid  : "+pid))
-												ur="https://wdq.wmflabs.org/api?q=claim[31:"+qid[1:]+"]%20and%20claim["+pid[1:]+":"+qid1[1:]+"]"
-												app.logger.info(repr(ur))
-												response = urllib2.urlopen(ur)
-												data = json.load(response)
-												value=""
-												ct=0
-												if data['status']['items']!=0:
-
-													for i in range(len(data['items'])):	
-														#gets value from property page
-														if ct>0:
-															value=value+", "		
-														value_id = data['items'][i]
-														app.logger.info(repr(value_id))
-																	
-														u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-														response1 = urllib2.urlopen(u)
-														data2 = json.load(response1)
-														ct+=1
-														if data2['success']:
-															if 'labels' in data2['entities']['Q'+str(value_id)]:
-																value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-															else:
-																continue
-
+											app.logger.info(repr("pty found"))
+											
+											pid = pty.pid
+											app.logger.info(repr("Pid  : "+pid))
+											ur="https://wdq.wmflabs.org/api?q=claim[31:"+qid[1:]+"]%20and%20claim["+pid[1:]+":"+qid1[1:]+"]"
+											app.logger.info(repr(ur))
+											response = urllib2.urlopen(ur)
+											data = json.load(response)
+											value=""
+											ct=0
+											if data['status']['items']!=0:
+												gr=True
+													
+												for i in range(len(data['items'])):	
+													#gets value from property page
+													if ct>0:
+														value=value+", "		
+													value_id = data['items'][i]
+													app.logger.info(repr(value_id))
+																
+													u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+													response1 = urllib2.urlopen(u)
+													data2 = json.load(response1)
+													ct+=1
+													if data2['success']:
+														if 'labels' in data2['entities']['Q'+str(value_id)]:
+															value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 														else:
+															continue
+
+														"""else:
 															val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 															flash(val,'warning')
-															return render_template('index.html',page="home",history=history)
-													break
-												else:
-													continue
-										break	
+															return render_template('index.html',page="home",history=history)"""
+													
+											else:
+												continue
+											
 									else:
 										continue
-
-					val = {'question':question,'answer':value ,'content':"string"}
-					flash(val,'success')
-					saveqa(question,noun_save,value,"string")
-					return render_template('index.html',page="home",history=history)
+					if gr==True:
+						val = {'question':question,'answer':value ,'content':"string"}
+						flash(val,'success')
+						saveqa(question,noun_save,value,"string")
+						return render_template('index.html',page="home",history=history)
 
 
 
 				
 
 					"""find entity using qid"""
-				elif grammar2==True and qid:
-					ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
-					response = urllib2.urlopen(ur)
-					data = json.load(response)
-					if grammar2==True:
-						qid1=qid[1:]
-						qid=qid1[:]
-						app.logger.info(repr(qid))
-						ur="https://wdq.wmflabs.org/api?q=claim[39:"+qid+"]"
-						app.logger.info(repr(ur))
-						response = urllib2.urlopen(ur)
-						data = json.load(response)
-						value=""
-						ct=0
-						if data['status']['items']!=0:
 
-							for i in range(len(data['items'])):	
-								#gets value from property page
-								if ct>0:
-									value=value+", "		
-								value_id = data['items'][i]
-								app.logger.info(repr(value_id))
-											
-								u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-								response1 = urllib2.urlopen(u)
-								data2 = json.load(response1)
-								ct+=1
-								if data2['success']:
-									if 'labels' in data2['entities']['Q'+str(value_id)]:
-										value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-									else:
-										continue
-								else:
-									val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-									flash(val,'warning')
-									return render_template('index.html',page="home",history=history)
-						else:
-							ur="https://wdq.wmflabs.org/api?q=claim[31:"+qid+"]"
-							app.logger.info(repr(ur))
-							response = urllib2.urlopen(ur)
-							data = json.load(response)
-							value=""
-							ct=0
-							if data['status']['items']!=0:
-
-								for i in range(len(data['items'])):	
-									#gets value from property page
-									if ct>0:
-										value=value+", "		
-									value_id = data['items'][i]
-									app.logger.info(repr(value_id))
-												
-									u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-									response1 = urllib2.urlopen(u)
-									data2 = json.load(response1)
-									ct+=1
-									if data2['success']:
-										if 'labels' in data2['entities']['Q'+str(value_id)]:
-											value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-										else:
-											continue
-							else:
-								value = searchwiki(key,value)
-						val = {'question':question,'answer':value ,'content':"string"}
-						flash(val,'success')
-						saveqa(question,noun_save,value,"string")
-						return render_template('index.html',page="home",history=history)
+				if gr==False:
+					value = searchwiki(key,value)
+				val = {'question':question,'answer':value ,'content':"string"}
+				flash(val,'success')
+				saveqa(question,noun_save,value,"string")
+				return render_template('index.html',page="home",history=history)
 			if des == True:
 				value = data['entities'][qid]['descriptions']['en']['value']
 				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
