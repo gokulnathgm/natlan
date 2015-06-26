@@ -127,7 +127,21 @@ def index():
    			if not q_noun:
    				q_noun=q_noun1[:]
    				des = True
-				pty=Properties.query.filter(Properties.pid == "P31").all()
+   				qid = False
+   				for idx,i in enumerate(q_noun):					#add + in btwn words for searching
+					app.logger.info(repr(str(q_noun[idx])))
+					x=str(q_noun[idx]).replace(" ","+")
+					q_noun[idx]=x
+				for i in q_noun:			
+					ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
+					app.logger.info(repr(ur))
+					response = urllib2.urlopen(ur)
+					data = json.load(response)
+					app.logger.info(repr(i))
+					
+
+
+				#pty=Properties.query.filter(Properties.pid == "P31").all()
 		
    		
    		app.logger.info(repr(q_noun))
@@ -165,27 +179,34 @@ def index():
 				response = urllib2.urlopen(ur)
 				data = json.load(response)
 
-				if 'id' in data['search'][0]:
-					qid = data['search'][0]['id']
-					ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
-					app.logger.info(repr(ur))
-					response = urllib2.urlopen(ur)
-					data = json.load(response)
-					value = data['entities'][qid]['descriptions']['en']['value']
-					answer=""
-					if value:
-						if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
-							answer = searchwiki(question,value)
+				if data['search']:
+					if 'id' in data['search'][0]:
+						qid = data['search'][0]['id']
+						ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+						app.logger.info(repr(ur))
+						response = urllib2.urlopen(ur)
+						data = json.load(response)
+					
+						if 'description' in data['entities'][qid]:
+							answer = data['entities'][qid]['description']['en']['value']
+							answer=""
+							if value:
+								if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+									answer = searchwiki(question,value)
+							else:
+								#answer = searchwiki(question,"")
+								answer = value
 						else:
-							#answer = searchwiki(question,"")
-							answer = value
+							answer=searchwiki(question,"string")
+					#else:
+						#answer = searchwiki(question,'string')
 					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
 					return render_template('index.html',page="home",history=history)
-				else:
+				"""else:
 					val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
 					flash(val,'warning')
-					return render_template('index.html',page="home",history=history)
+					return render_template('index.html',page="home",history=history)"""
 
 
 			
@@ -261,7 +282,7 @@ def index():
 
 			"""finds Entity id (Qid) for elements in q_noun, searches till atleast one result is obtained"""
 			if grammar2==True:
-				gr=False
+				gr = False
 
 				qid = False
 				for i in q_noun:			
@@ -478,118 +499,168 @@ def index():
 					"""find entity using qid"""
 
 				if gr==False:
-					value = searchwiki(key,value)
+					value = searchwiki(key,'string')
+				
 				val = {'question':question,'answer':value ,'content':"string"}
 				flash(val,'success')
 				saveqa(question,noun_save,value,"string")
 				return render_template('index.html',page="home",history=history)
+			app.logger.info(repr(des))
 			if des == True:
-				value = data['entities'][qid]['descriptions']['en']['value']
-				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
-					value = searchwiki(key,value)
+				if data['search']:
+					if 'description' in data['search'][0]:
+						value = data['search'][0]['description']
+						if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+							value = searchwiki(key,value)
+						else:
+							qid = data['search'][0]['id']
+							ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+							app.logger.info(repr(ur))
+							response = urllib2.urlopen(ur)
+							data = json.load(response)
+					
+							if 'description' in data['entities'][qid]:
+								answer = data['entities'][qid]['description']['en']['value']
+								answer=""
+								if value:
+									if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+										answer = searchwiki(question,value)
+								else:
+									#answer = searchwiki(question,"")
+									answer = value
+							else:
+								answer=searchwiki(question,"string")
+
+					else:
+						app.logger.info(repr(key))
+						value=searchwiki(key,"string")
+
+
+
 				val = {'question':question,'answer':value , 'content' : "string"}
 				flash(val,'success')
 				saveqa(question,noun_save,value,"string")
 				return render_template('index.html',page="home",history=history)
 
 			elif not grammar2:
-
-				if 'claims' in data['entities'][qid]:			#checks whether entity has any statements
+				qid = False
+				for i in q_noun:			
+					ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
+					app.logger.info(repr(ur))
+					response = urllib2.urlopen(ur)
+					data = json.load(response)
+					app.logger.info(repr(i))
+					if data['search']:
+						app.logger.info(repr(data))
+						if 'description' in data['search'][0]:
+							if data['search'][0]['description'] == 'Wikipedia disambiguation page' or data['search'][0]['description'] == 'Wikimedia disambiguation page':
+								qid = data['search'][1]['id']
+							else:
+								qid = data['search'][0]['id']
+						else:
+							qid = data['search'][0]['id']
+						app.logger.info(repr("Qid  : "+qid))
+						break
+				if qid:
+					ur = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+qid+"&format=json&languages=en"
+					response = urllib2.urlopen(ur)
+					data = json.load(response)
+					if 'claims' in data['entities'][qid]:			#checks whether entity has any statements
 					
-					for prop in pty:
-						pid = prop.pid
-						app.logger.info(repr("Pid  : "+pid))
-						
-						if pid in data['entities'][qid]['claims']:	#checks whether entity has the given property
-							app.logger.info(repr("pid = " + str(pid)))
-							obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
-							app.logger.info(repr(obj))
-							if obj == "wikibase-item":				#property value is another entity
-								value=""
-								ct=0
-								for i in range(len(data['entities'][qid]['claims'][pid])):	
-											#gets value from property page
-									if ct>0:
-										value=value+", "		
-									value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
-									app.logger.info(repr(value_id))
-								
-									u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
-									response1 = urllib2.urlopen(u)
-									data2 = json.load(response1)
-									ct+=1
-									if data2['success']:
-										value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
-									else:
-										val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-										flash(val,'warning')
-										return render_template('index.html',page="home",history=history)
-
-								val = {'question':question,'answer':value , 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
-
-							elif obj == "string" or obj == "url":			#if property value is string or url
-								value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-								val = {'question':question,'answer':value , 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
+						for prop in pty:
+							pid = prop.pid
+							app.logger.info(repr("Pid  : "+pid))
 							
-							elif obj == "globe-coordinate":					#if property value is geo coordinates
-								latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
-								lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
-								value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
-								val = {'question':question,'answer':value , 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
+							if pid in data['entities'][qid]['claims']:	#checks whether entity has the given property
+								app.logger.info(repr("pid = " + str(pid)))
+								obj = data['entities'][qid]['claims'][pid][0]['mainsnak']['datatype']
+								app.logger.info(repr(obj))
+								if obj == "wikibase-item":				#property value is another entity
+									value=""
+									ct=0
+									for i in range(len(data['entities'][qid]['claims'][pid])):	
+												#gets value from property page
+										if ct>0:
+											value=value+", "		
+										value_id = data['entities'][qid]['claims'][pid][i]['mainsnak']['datavalue']['value']['numeric-id']
+										app.logger.info(repr(value_id))
+									
+										u = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+"Q"+str(value_id)+"&format=json&languages=en"
+										response1 = urllib2.urlopen(u)
+										data2 = json.load(response1)
+										ct+=1
+										if data2['success']:
+											value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+										else:
+											val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
+											flash(val,'warning')
+											return render_template('index.html',page="home",history=history)
 
-							elif obj == "time":
-								time = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['time']
-								time = time.split('-')
-								year = time[0][1:]
-								day = time[2][:2]
-								month = calendar.month_name[int(time[1])]
-								value = "{}th {} {}".format(day,month,year)
-								val = {'question':question,'answer':value , 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
-							elif obj=="commonsMedia":
-								value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
-								value = value.replace(" ","_")	
-								app.logger.info(repr(value))						
-								ur = "http://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&titles=Image:"+value+"&iiprop=url&format=json"
-								response1 = urllib2.urlopen(ur)
-								data2 = json.load(response1)
-								for a in data2['query']['pages']:
-									url = data2['query']['pages'][a]['imageinfo'][0]['url']
-									break 
-								if url:
-									val= {'question':question,'answer':url , 'content' : "media" }
+									val = {'question':question,'answer':value , 'content' : "string"}
 									flash(val,'success')
-									saveqa(question,noun_save,url,"media")
+									saveqa(question,noun_save,value,"string")
 									return render_template('index.html',page="home",history=history)
 
-								val= {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-								flash(val,'warning')
-								return render_template('index.html',page="home",history=history)
-							elif obj=="monolingualtext":
-								value= data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['text']
-								val = {'question':question,'answer':value, 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
+								elif obj == "string" or obj == "url":			#if property value is string or url
+									value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+									val = {'question':question,'answer':value , 'content' : "string"}
+									flash(val,'success')
+									saveqa(question,noun_save,value,"string")
+									return render_template('index.html',page="home",history=history)
+								
+								elif obj == "globe-coordinate":					#if property value is geo coordinates
+									latvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['latitude']
+									lonvalue = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['longitude']
+									value = "latitude: {} longitude: {} ".format(latvalue,lonvalue)
+									val = {'question':question,'answer':value , 'content' : "string"}
+									flash(val,'success')
+									saveqa(question,noun_save,value,"string")
+									return render_template('index.html',page="home",history=history)
+
+								elif obj == "time":
+									time = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['time']
+									time = time.split('-')
+									year = time[0][1:]
+									day = time[2][:2]
+									month = calendar.month_name[int(time[1])]
+									value = "{}th {} {}".format(day,month,year)
+									val = {'question':question,'answer':value , 'content' : "string"}
+									flash(val,'success')
+									saveqa(question,noun_save,value,"string")
+									return render_template('index.html',page="home",history=history)
+								elif obj=="commonsMedia":
+									value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']
+									value = value.replace(" ","_")	
+									app.logger.info(repr(value))						
+									ur = "http://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&titles=Image:"+value+"&iiprop=url&format=json"
+									response1 = urllib2.urlopen(ur)
+									data2 = json.load(response1)
+									for a in data2['query']['pages']:
+										url = data2['query']['pages'][a]['imageinfo'][0]['url']
+										break 
+									if url:
+										val= {'question':question,'answer':url , 'content' : "media" }
+										flash(val,'success')
+										saveqa(question,noun_save,url,"media")
+										return render_template('index.html',page="home",history=history)
+
+									val= {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
+									flash(val,'warning')
+									return render_template('index.html',page="home",history=history)
+								elif obj=="monolingualtext":
+									value= data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['text']
+									val = {'question':question,'answer':value, 'content' : "string"}
+									flash(val,'success')
+									saveqa(question,noun_save,value,"string")
+									return render_template('index.html',page="home",history=history)
 
 
-							else:											#for all other property values
-								value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
-								val = {'question':question,'answer':value , 'content' : "string"}
-								flash(val,'success')
-								saveqa(question,noun_save,value,"string")
-								return render_template('index.html',page="home",history=history)
+								else:											#for all other property values
+									value = data['entities'][qid]['claims'][pid][0]['mainsnak']['datavalue']['value']['amount']
+									val = {'question':question,'answer':value , 'content' : "string"}
+									flash(val,'success')
+									saveqa(question,noun_save,value,"string")
+									return render_template('index.html',page="home",history=history)
 
 					
 					answer = searchwiki(key,"")			
