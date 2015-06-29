@@ -272,7 +272,7 @@ def index():
 
 				if not pty and grammar2==False:	
 					app.logger.info(repr(key))
-					answer = searchwiki(quetion,"")
+					answer = searchwiki(question,"")
 					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
 					return render_template('index.html',page="home",history=history)
