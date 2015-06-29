@@ -788,11 +788,7 @@ def saveqa(question,q_noun,answer,content):
 	db.session.commit()
 
 def searchwiki(question,value):
-<<<<<<< HEAD
-	app.logger.info(repr("search wiki fn"))
-=======
 	app.logger.info(repr("search wikipedia"))
->>>>>>> 47f0ab6e543a02ecc01afa9d33e45b1866593b6e
 	key = wikipedia.search(question)
 	app.logger.info(repr(question))
 	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
