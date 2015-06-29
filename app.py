@@ -149,7 +149,7 @@ def index():
    		rng = False
    		dt = False
    		for k in q_noun:
-   			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k:
+   			if 'distance' in k or 'length' in k or 'long' in k or 'kilometers'in k or 'how far' in question:
    				rng = True
    				app.logger.info(repr("range query"))
    				break
@@ -272,7 +272,7 @@ def index():
 
 				if not pty and grammar2==False:	
 					app.logger.info(repr(key))
-					answer = searchwiki(question,"")
+					answer = searchwiki(quetion,"")
 					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
 					return render_template('index.html',page="home",history=history)
