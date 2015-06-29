@@ -494,6 +494,7 @@ def index():
 															flash(val,'warning')
 															return render_template('index.html',page="home",history=history)"""
 													
+												break	
 											else:
 												continue
 											
