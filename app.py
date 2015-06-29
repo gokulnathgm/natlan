@@ -217,17 +217,10 @@ def index():
 						#answer = searchwiki(question,'string')
 					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
+					saveqa(question.replace('+',' '),noun_save,answer,"string")
 					return render_template('index.html',page="home",history=history)
-				"""else:
-					val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-					flash(val,'warning')
-					return render_template('index.html',page="home",history=history)"""
-
-
+				
 			
-
-				#des = True
-				#pty=Properties.query.filter(Properties.pid == "P31").all()
 			if not des:
 				ptyl = False
 				for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
@@ -278,6 +271,7 @@ def index():
 					answer = searchwiki(question,"")
 					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
+					saveqa(question.replace('+',' '),noun_save,answer,"string")
 					return render_template('index.html',page="home",history=history)
 
 
@@ -492,11 +486,7 @@ def index():
 														else:
 															continue
 
-														"""else:
-															val = {'question':question,'answer':"As of now, the system is unable to answer this question...", 'content' : "string"}
-															flash(val,'warning')
-															return render_template('index.html',page="home",history=history)"""
-													
+																										
 											else:
 												continue
 											
