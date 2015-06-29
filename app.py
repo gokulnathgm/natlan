@@ -782,11 +782,17 @@ def searchwiki(question,value):
 	app.logger.info(repr("search wikipedia"))
 	key = wikipedia.search(question)
 	app.logger.info(repr(question))
+	app.logger.info(repr(value))
 	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
 		m = wikipedia.page(wikipedia.search(key[0]))
 		answer = wikipedia.summary(m.title,sentences=1)
 	else:
-		answer = wikipedia.summary(key[0],sentences=1)
+		try:
+			answer = wikipedia.summary(key[0],sentences=1)
+		except Exception:
+			m = wikipedia.page(wikipedia.search(key[0]))
+			answer = wikipedia.summary(m.title,sentences=1)
+
 	return answer
 
 
