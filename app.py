@@ -188,11 +188,23 @@ def index():
 						data = json.load(response)
 					
 						if 'description' in data['entities'][qid]:
-							answer = data['entities'][qid]['description']['en']['value']
+							app.logger.info(repr(qid))
+							value = data['entities'][qid]['description']['en']['value']
 							answer=""
 							if value:
 								if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
 									answer = searchwiki(question,value)
+							else:
+								#answer = searchwiki(question,"")
+								answer = value
+						if 'descriptions' in data['entities'][qid]:
+							app.logger.info(repr(qid))
+							value = data['entities'][qid]['descriptions']['en']['value']
+							app.logger.info(repr(value))
+							answer=""
+							
+							if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
+								answer = searchwiki(question,value)
 							else:
 								#answer = searchwiki(question,"")
 								answer = value
@@ -259,8 +271,9 @@ def index():
 								
 
 				if not pty and grammar2==False:	
-					answer = searchwiki(key,"")
-					val = {'question':question,'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
+					app.logger.info(repr(key))
+					answer = searchwiki(question,"")
+					val = {'question':question.replace('+',' '),'answer':answer, 'content' : "string"}								#property doesnt exist if pid is empty
 					flash(val,'success')
 					return render_template('index.html',page="home",history=history)
 
@@ -768,12 +781,12 @@ def saveqa(question,q_noun,answer,content):
 def searchwiki(question,value):
 	app.logger.info(repr("search wikipedia"))
 	key = wikipedia.search(question)
+	app.logger.info(repr(question))
 	if value=="Wikipedia disambiguation page" or value=="Wikimedia disambiguation page":
 		m = wikipedia.page(wikipedia.search(key[0]))
 		answer = wikipedia.summary(m.title,sentences=1)
 	else:
 		answer = wikipedia.summary(key[0],sentences=1)
-	app.logger.info(repr(key[0]))
 	return answer
 
 
