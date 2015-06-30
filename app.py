@@ -327,14 +327,15 @@ def index():
 					app.logger.info(repr(ur))
 					response = urllib2.urlopen(ur)
 					data = json.load(response)
-					value=""
+					value=[]
+					value1=""
+				
 					ct=0
 					if data['status']['items']!=0:
 						gr=True
 						for i in range(len(data['items'])):	
 									#gets value from property page
-							if ct>0:
-								value=value+", "		
+	
 							value_id = data['items'][i]
 							app.logger.info(repr(value_id))
 												
@@ -344,7 +345,10 @@ def index():
 							ct+=1
 							if data2['success']:
 								if 'labels' in data2['entities']['Q'+str(value_id)]:
-									value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+									if ct>0:
+										value1=value1+", "	
+									value.append(data2['entities']['Q'+str(value_id)]['labels']['en']['value'])
+									value1+=data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 								else:
 									continue
 							else:
@@ -358,14 +362,14 @@ def index():
 						app.logger.info(repr(ur))
 						response = urllib2.urlopen(ur)
 						data = json.load(response)
-						value=""
 						ct=0
 						if data['status']['items']!=0:
 							gr=True
+							value=[]
+							value1=""
 							for i in range(len(data['items'])):	
 								#gets value from property page
-								if ct>0:
-									value=value+", "		
+	
 								value_id = data['items'][i]
 								app.logger.info(repr(value_id))
 													
@@ -375,7 +379,10 @@ def index():
 								ct+=1
 								if data2['success']:
 									if 'labels' in data2['entities']['Q'+str(value_id)]:
-										value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+										if ct>0:
+											value1=value1+", "	
+										value.append(data2['entities']['Q'+str(value_id)]['labels']['en']['value'])
+										value1=value1+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 									else:
 										continue
 						else:
@@ -467,15 +474,15 @@ def index():
 											app.logger.info(repr(ur))
 											response = urllib2.urlopen(ur)
 											data = json.load(response)
-											value=""
+											value=[]
+											value1=""
 											ct=0
 											if data['status']['items']!=0:
 												gr=True
 													
 												for i in range(len(data['items'])):	
 													#gets value from property page
-													if ct>0:
-														value=value+", "		
+															
 													value_id = data['items'][i]
 													app.logger.info(repr(value_id))
 																
@@ -485,7 +492,10 @@ def index():
 													ct+=1
 													if data2['success']:
 														if 'labels' in data2['entities']['Q'+str(value_id)]:
-															value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+															if ct>0:
+																value1=value1+", "
+															value.append(data2['entities']['Q'+str(value_id)]['labels']['en']['value'])
+															value1+=data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 														else:
 															continue
 
@@ -501,9 +511,10 @@ def index():
 									else:
 										continue
 					if gr==True:
-						val = {'question':question,'answer':value ,'content':"string"}
+						app.logger.info(repr(value))
+						val = {'question':question,'answer':value ,'content':"list"}
 						flash(val,'success')
-						saveqa(question,noun_save,value,"string")
+						saveqa(question,noun_save,value1,"string")
 						return render_template('index.html',page="home",history=history)
 
 
@@ -514,10 +525,17 @@ def index():
 
 				if gr==False:
 					value = searchwiki(key,'string')
+				app.logger.info(repr(value))
 				
-				val = {'question':question,'answer':value ,'content':"string"}
+				
+				if gr==False:
+					val = {'question':question,'answer':value ,'content':"string"}
+					saveqa(question,noun_save,value,"string")
+				else:
+					val = {'question':question,'answer':value ,'content':"list"}
+					app.logger.info(repr(value))
+					saveqa(question,noun_save,value1,"string")
 				flash(val,'success')
-				saveqa(question,noun_save,value,"string")
 				return render_template('index.html',page="home",history=history)
 			app.logger.info(repr(des))
 			if des == True:
