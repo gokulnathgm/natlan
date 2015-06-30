@@ -15,6 +15,24 @@
                 {% if message['content'] == "media" %}
                   <p><img style="max-height:150px" src="{{message['answer']}}"/></p>
                 {% endif %}
+                {% if message['content'] == "list" %}
+                  <div class="col-md-10 col-md-offset-1">
+                    <table id="history" class="table">
+                      <tbody>
+                                  {% set i = 1 %}
+                                  {% for q in message['content'] %}
+                                  
+                                  {{('<tr>' if i%3==1}}
+                                  
+                                    <td class="col-md-4">{{i}}</td>
+                                                                      
+                                  {{('</tr>' if i%3==1}}
+                                  {% set i = i +1 %}
+                                  {% endfor %}
+                      </tbody>
+                    </table>
+                   </div>
+                {% endif %}
                 </div>
           </div>
         
