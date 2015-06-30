@@ -32,7 +32,7 @@ def index():
 		q_tagged = blob.tags
 		app.logger.info(repr(q_tagged))
 
-		grammar=r"""NP: {<JJ.*>*<NNS><IN>+<DT>*<NN.*>+}"""
+		grammar=r"""NP: {<JJ.*>*<NNS><IN>+<DT>*<NN.*>+}"""		#grammar for list all type questions
 		np_parser=nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
 		app.logger.info(repr(np_tree))
@@ -60,7 +60,7 @@ def index():
 		if not q_noun:
 			grammar = r"""NP: {<JJ.*>*<IN>*<NN.*>+}
 						{<NN.*><IN>+<JJ.*>+}
-						{<IN>*<CD>+}"""	
+						{<IN>*<CD>+}"""						#grammar for general questions
 										#grammar for chunking
 			np_parser = nltk.RegexpParser(grammar)
 			np_tree = np_parser.parse(q_tagged)
@@ -103,7 +103,7 @@ def index():
 			q_noun1=q_noun[:]
 			app.logger.info(repr(q_noun1))
 			q_noun=[]
-			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""
+			grammar=r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""		#grammar for indirect questions
 			np_parser = nltk.RegexpParser(grammar)
 			np_tree = np_parser.parse(q_tagged)
 			app.logger.info(repr(np_tree))
@@ -383,7 +383,7 @@ def index():
 
 				elif not qid or gr==False:
 				
-					for i in np_tree:
+					for i in np_tree:			#seperates entities in list all type questions
 						NPs=""
 						nou=""
 						s=False
@@ -474,8 +474,7 @@ def index():
 													
 												for i in range(len(data['items'])):	
 													#gets value from property page
-													if ct>0:
-														value=value+", "		
+															
 													value_id = data['items'][i]
 													app.logger.info(repr(value_id))
 																
@@ -486,6 +485,8 @@ def index():
 													if data2['success']:
 														if 'labels' in data2['entities']['Q'+str(value_id)]:
 															value = value+""+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
+															if ct>0:
+																value=value+", "
 														else:
 															continue
 
