@@ -18,6 +18,7 @@ question = ""
 @app.route('/', methods=['GET', 'POST'])
 
 def index():
+	global question
 	if request.method == 'GET':
 		history = History.query.order_by(History.id.desc()).limit(9)
 		return render_template('index.html',page="home",history=history)
@@ -61,7 +62,7 @@ def index():
 		if value:
 			value = "As of now, the System is unable to answer the question."
 
-
+		value = {'question':question,'answer':answer, 'content' : "string"}
 	if typ == "general":
 		app.logger.info(repr("general"))
 		result = get_property(q_noun)
@@ -70,20 +71,27 @@ def index():
 			q_noun = result['q_noun']
 			value = get_general(q_noun,pty)
 		else:
-			value = "As of now, the System is unable to answer the question."
-
+			answer = "As of now, the System is unable to answer the question."
+			value = {'question':question,'answer':answer, 'content' : "string"}
+		
 	if typ == "distance":
 		app.logger.info(repr("distance"))
 		answer = get_distance(q_noun)
-		if answer == error:
-			value = "As of now, the System is unable to answer the question."
-		else:
-			value = answer
+		if answer == True:
+			answer = "As of now, the System is unable to answer the question."
+		value = {'question':question,'answer':answer, 'content' : "string"}
 	if typ == "time":
 		app.logger.info(repr("time"))
-		value = get_date(q_noun)
+		answer = get_date(q_noun)
+		value = {'question':question,'answer':answer, 'content' : "string"}
 
+	if typ == "description":
+		app.logger.info(repr("description"))
+		value = get_description(q_noun)
+		if not value:
+			value = {'question':question,'answer':"As of now, the System is unable to answer the question.", 'content' : "string"}			
 	flash(value,'success')
+	app.logger.info(repr(value))
 	return render_template('index.html',page="home")
 
 
@@ -134,11 +142,17 @@ def parse(q_tagged):
 				app.logger.info(repr("q_noun : " + str(q_noun)))
 		if (q_noun and j==0) or (len(q_noun)!=1 and j==1):
 			break
+		if j==1 and len(q_noun)==1:
+			q_noun1=q_noun[:]
+		if j==2 and not q_noun:
+			q_noun=q_noun1[:]
+
 		j+=1
 
 		app.logger.info(repr(q_noun))
-		if q_noun:
-			break
+		app.logger.info(repr("grmr :"+str(grmr)))
+
+
 
 	grammar = {'q_noun':q_noun, 'grammar':grmr}
 
@@ -464,30 +478,25 @@ def get_date(q_noun):
 	return val
 def get_description(q_noun):
 	val=False
+	value=False
 	wikidatasearch = wikidata_search(q_noun)
 	if wikidatasearch['qid']:
 		qid1 = wikidatasearch['qid']
-		data = wikidata_get_entity(qid)
+		data = wikidata_get_entity(qid1)
 		des = False
-		if data['search']:
-			if 'description' in data['search'][0]:
-				value = data['search'][0]['description']
-				if value == "Wikipedia disambiguation page" or value == "Wikimedia disambiguation page":
-					if 'description' in data['search'][1]:
-						value = data['search'][1]['description']
+		if 'descriptions' in data['entities'][qid1]:
+				value = data['entities'][qid1]['descriptions']['en']['value']
 				des = True		
-			if not des:
-				value=searchwiki(q_noun[0],"string")
+		if not des:
+			value=searchwiki(q_noun[0])
 
-		else:
-			value=searchwiki(q_noun[0],"string")
 		if value:
 			val = {'question':question,'answer':value , 'content' : "string"}
 	return val
 
 def get_property(q_noun):
 	ptyl = False
-	pty=False
+	pty=[]
 	for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
 		for jdx, j in enumerate(q_noun[idx+1:]):
 			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
@@ -530,7 +539,7 @@ def get_property(q_noun):
 				app.logger.info(repr("pty found by single property"))
 				break
 	if pty:
-		result = {'qnoun':q_noun,'property':pty}
+		result = {'q_noun':q_noun,'property':pty}
 		return result
 	else:
 		return False
