@@ -1,0 +1,43 @@
+<div class="row">
+  <div class="col-sm-10 col-sm-offset-1">
+    <p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul class="list-unstyled" > 
+        {% for category, message in messages %}
+        <li>
+          
+          <div class="alert alert-{{category}}">
+                <p>Q) {{message['question']}}</p><hr />
+                {% if message['content'] == "string" %}
+                  <p>A) {{message['answer']}}</p>
+                {% endif %}
+                {% if message['content'] == "media" %}
+                  <p><img style="max-height:150px" src="{{message['answer']}}"/></p>
+                {% endif %}
+                {% if message['content'] == "list" %}
+                    <table id="answer" style="background-color:#62C462;">
+                      <tbody>
+                                  {% set i = 1 %}
+                                  {% for q in message['answer'] %}
+                                  <tr>
+                                    <td class="col-md-4">{{i|string() + ") "+ q[0]}}</td>
+                                    <td class="col-md-4">{{(i+1)|string() + ") "+ q[1]}}</td>
+                                    <td class="col-md-4">{{(i+2)|string() + ") "+ q[2]}}</td>
+                                  </tr>                                                     
+                                  {% set i = i +3 %}
+                                  {% endfor %}
+                      </tbody>
+                    </table>
+                {% endif %}
+                </div>
+          </div>
+        
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+    </p>
+  </div>
+</div>
