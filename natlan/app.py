@@ -35,6 +35,56 @@ def index():
 		q_noun = parsed['q_noun']
 		grmr = parsed['grammar']
 
+		checked = qcheck(parsed)
+		q_noun = checked['q_noun']
+		typ = checked['type']
+
+	if typ == "keyword":
+		app.logger.info(repr("keyword"))
+		quest = []
+		quest[0] = question
+		searched = wikidata_search(quest)
+		qid = searched['qid']
+
+		if qid == False:
+			answer = searchwiki(question.replace(' ','+'))
+			if answer == False:
+				answer = "As of now, the System is unable to answer the question."
+
+		else:
+			data = wikidata_get_entity(qid)
+			answer = data['entities'][qid]['description']['en']['value']
+
+		value = {'question':question,'answer':answer, 'content' : "string"}
+
+
+	if typ == "list":
+		app.logger.info(repr("list"))
+		value = get_list(q_noun)
+		if value:
+			value = "As of now, the System is unable to answer the question."
+
+
+	if typ == "general":
+		app.logger.info(repr("general"))
+		value = get_general(q_noun,pty)
+
+	if typ == "distance":
+		app.logger.info(repr("distance"))
+		answer = get_distance(q_noun)
+		if answer == error:
+			value = "As of now, the System is unable to answer the question."
+		else:
+			value = answer
+	if typ == "time":
+		app.logger.info(repr("time"))
+		value = get_date(q_noun)
+
+	flash(value,'success')
+	return render_template('index.html',page="home")
+
+
+
 
 def parse(q_tagged):
 	grammars={"list":r"""NP: {<JJ.*>*<NNS><IN>+<DT>*<NN.*>+}""","general":r"""NP: {<JJ.*>*<IN>*<NN.*>+}{<NN.*><IN>+<JJ.*>+}{<IN>*<CD>+}""","indirect":r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""}
@@ -374,7 +424,7 @@ def get_distance(q_noun):
 		d = int(c*r)
 		value = str(d) + " kms approx."
 		val = {'question':question,'answer':value, 'content' : "string"}
-		flash(val,'success')
+		
 		return val
 	else
 		return error
@@ -565,7 +615,10 @@ def get_general(q_noun,pty):
 
 	else:
 		answer = searchwiki(key)
-		val = {'question':question,'answer':answer, 'content' : "string"}
+		if answer:
+			val = {'question':question,'answer':answer, 'content' : "string"}
+		else:
+			val = {'question':question,'answer':"As of now, the system is unable to answer the question", 'content' : "string"}
 		return val
 					
 def saveqa(question,q_noun,answer,content):
