@@ -13,9 +13,10 @@ from models import db
 
 db.init_app(app)
 
+question = ""
+
 @app.route('/', methods=['GET', 'POST'])
-global question
-global np_tree
+
 def index():
 	if request.method == 'GET':
 		history = History.query.order_by(History.id.desc()).limit(9)
@@ -31,18 +32,14 @@ def index():
 		q_tagged = blob.tags
 		app.logger.info(repr(q_tagged))
 
-		parsed=parse(q_tagged)
+		parsed = parse(q_tagged)
 		q_noun = parsed['q_noun']
-		grmr = parsed['grammar']
-
-		checked = qcheck(parsed)
-		q_noun = checked['q_noun']
-		typ = checked['type']
+		typ = parsed['type']
 
 	if typ == "keyword":
 		app.logger.info(repr("keyword"))
 		quest = []
-		quest[0] = question
+		quest.append(question)
 		searched = wikidata_search(quest)
 		qid = searched['qid']
 
@@ -67,7 +64,13 @@ def index():
 
 	if typ == "general":
 		app.logger.info(repr("general"))
-		value = get_general(q_noun,pty)
+		result = get_property(q_noun)
+		if result:
+			pty = result['property']
+			q_noun = result['q_noun']
+			value = get_general(q_noun,pty)
+		else:
+			value = "As of now, the System is unable to answer the question."
 
 	if typ == "distance":
 		app.logger.info(repr("distance"))
@@ -87,16 +90,20 @@ def index():
 
 
 def parse(q_tagged):
-	grammars={"list":r"""NP: {<JJ.*>*<NNS><IN>+<DT>*<NN.*>+}""","general":r"""NP: {<JJ.*>*<IN>*<NN.*>+}{<NN.*><IN>+<JJ.*>+}{<IN>*<CD>+}""","indirect":r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""}
+	grammars=[r"""NP: {<JJ.*>*<NNS><IN>+<DT>*<NN.*>+}""",r"""NP: {<JJ.*>*<IN>*<NN.*>+}
+	{<NN.*><IN>+<JJ.*>+}
+	{<IN>*<CD>+}""",r"""NP:{<JJ.*>*<NN.*>+<VB.*><IN>?}"""]
 	j=0
 	q_noun=[]
 	for grammar in grammars:
+		grmr=j
+		app.logger.info(repr(grammar))
 		np_parser = nltk.RegexpParser(grammar)
 		np_tree = np_parser.parse(q_tagged)
-
+		q_noun = []	
 		app.logger.info(repr(np_tree))
 		for i in np_tree:	
-			q_noun = []							#to get all the Noun Phrases to q_noun
+			app.logger.info(repr("NP : " + str(i)))						#to get all the Noun Phrases to q_noun
 			NPs=""
 			if str(type(i))=="<class 'nltk.tree.Tree'>":		
 				for k in i:
@@ -121,14 +128,17 @@ def parse(q_tagged):
 						NPs=t
 					else:
 						NPs=NPs+" "+t
+						app.logger.info(repr("NPs : " + str(NPs)))
 
 				q_noun.append(NPs)
-				grmr=j
-				if (q_noun and j==0) or (len(q_noun)!=1 and j==1):
-					break
-				j+=1
+				app.logger.info(repr("q_noun : " + str(q_noun)))
+		if (q_noun and j==0) or (len(q_noun)!=1 and j==1):
+			break
+		j+=1
 
 		app.logger.info(repr(q_noun))
+		if q_noun:
+			break
 
 	grammar = {'q_noun':q_noun, 'grammar':grmr}
 
@@ -155,8 +165,6 @@ def qcheck(parsed):
 			q_noun[idx]=x
 		return {'q_noun':q_noun,'type':"description"}
 	
-	if grmr==2 or grmr==1:
-		return {'q_noun':q_noun,'type':"general"}
 	
 	rng = False
 	dt = False
@@ -174,13 +182,16 @@ def qcheck(parsed):
 		dt = True
 		return {'q_noun':q_noun,'type':"time"}
 
+	if grmr==2 or grmr==1:
+		return {'q_noun':q_noun,'type':"general"}
+
 
 def wikidata_search(q_noun):
 	qid = False
-		for idx,i in enumerate(q_noun):					#add + in btwn words for searching
-			app.logger.info(repr(str(q_noun[idx])))
-			x=str(q_noun[idx]).replace(" ","+")
-			q_noun[idx]=x
+	for idx,i in enumerate(q_noun):					#add + in btwn words for searching
+		app.logger.info(repr(str(q_noun[idx])))
+		x=str(q_noun[idx]).replace(" ","+")
+		q_noun[idx]=x
 	
 	for idx,i in enumerate(q_noun):			
 		ur = "https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+i+"&format=json&language=en"
@@ -373,14 +384,14 @@ def get_list(q_noun):
 		app.logger.info(repr(value))
 		val = {'question':question,'answer':[tuple(value[i:i+3]) for i in range(0, len(value), 3)] ,'content':"list"}
 		return val
-	else
+	else:
 		return error
 
 
 def get_distance(q_noun):
 	for idx,i in enumerate(q_noun):
 		q_noun[idx] = q_noun[idx].replace(' ','+')
-
+	error = False
 	app.logger.info(repr(q_noun))
 	loc1 = q_noun[0]
 	loc2 = q_noun[1]
@@ -388,14 +399,14 @@ def get_distance(q_noun):
 	wikidatasearch = wikidata_search([loc1])
 	if wikidatasearch['qid']:
 		qid1 = wikidatasearch['qid']
-		data = wikidata_get_entity(qid)
+		data = wikidata_get_entity(qid1)
 		if data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['latitude']:
 			latvalue1 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['latitude']
 			lonvalue1 = data['entities'][qid1]['claims']['P625'][0]['mainsnak']['datavalue']['value']['longitude']
 			app.logger.info(repr(str(latvalue1))+"  "+str(lonvalue1))
-		else
+		else:
 			error = True
-	else
+	else:
 		error = True
 			
 	wikidatasearch = wikidata_search([loc2])
@@ -406,9 +417,9 @@ def get_distance(q_noun):
 			latvalue2 = data['entities'][qid2]['claims']['P625'][0]['mainsnak']['datavalue']['value']['latitude']
 			lonvalue2 = data['entities'][qid2]['claims']['P625'][0]['mainsnak']['datavalue']['value']['longitude']
 			app.logger.info(repr(str(latvalue2))+"  "+str(lonvalue2))
-		else
+		else:
 			error = True
-	else
+	else:
 		error = True
 
 	if not error:
@@ -426,7 +437,7 @@ def get_distance(q_noun):
 		val = {'question':question,'answer':value, 'content' : "string"}
 		
 		return val
-	else
+	else:
 		return error
 
 def get_date(q_noun):
@@ -476,6 +487,7 @@ def get_description(q_noun):
 
 def get_property(q_noun):
 	ptyl = False
+	pty=False
 	for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
 		for jdx, j in enumerate(q_noun[idx+1:]):
 			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
