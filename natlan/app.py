@@ -50,19 +50,24 @@ def index():
 				answer = "As of now, the System is unable to answer the question."
 
 		else:
+			app.logger.info(repr(qid))
 			data = wikidata_get_entity(qid)
-			answer = data['entities'][qid]['description']['en']['value']
+			if 'description' in data['entities'][qid]:
+				answer = data['entities'][qid]['description']['en']['value']
+			else:
+				answer = data['entities'][qid]['descriptions']['en']['value']
 
 		value = {'question':question,'answer':answer, 'content' : "string"}
 
 
 	if typ == "list":
 		app.logger.info(repr("list"))
-		value = get_list(q_noun)
-		if value:
+		
+		np_tree=parsed['np_tree']
+		value = get_list(q_noun,np_tree)
+		if value==True:
 			value = "As of now, the System is unable to answer the question."
-
-		value = {'question':question,'answer':answer, 'content' : "string"}
+			value = {'question':question,'answer':answer, 'content' : "string"}
 	if typ == "general":
 		app.logger.info(repr("general"))
 		result = get_property(q_noun)
@@ -76,10 +81,10 @@ def index():
 		
 	if typ == "distance":
 		app.logger.info(repr("distance"))
-		answer = get_distance(q_noun)
-		if answer == True:
+		value = get_distance(q_noun)
+		if not value:
 			answer = "As of now, the System is unable to answer the question."
-		value = {'question':question,'answer':answer, 'content' : "string"}
+			value = {'question':question,'answer':answer, 'content' : "string"}
 	if typ == "time":
 		app.logger.info(repr("time"))
 		answer = get_date(q_noun)
@@ -154,7 +159,7 @@ def parse(q_tagged):
 
 
 
-	grammar = {'q_noun':q_noun, 'grammar':grmr}
+	grammar = {'q_noun':q_noun, 'grammar':grmr,'np_tree':np_tree}
 
 	parsed = qcheck(grammar)
 
@@ -168,7 +173,8 @@ def qcheck(parsed):
 		return {'q_noun':q_noun,'type':"keyword"}
 
 	if grmr==0:
-		return {'q_noun':q_noun,'type':"list"}
+		np_tree=parsed['np_tree']
+		return {'q_noun':q_noun,'type':"list",'np_tree':np_tree}
 
 	if len(q_noun)==1 and grmr==2:
 		des = True
@@ -232,9 +238,12 @@ def wikidata_get_entity(qid):
 	response = urllib2.urlopen(ur)
 	return json.load(response)
 
-def get_list(q_noun):
+def get_list(q_noun,np_tree):
 	wikidatasearch = wikidata_search(q_noun)
 	list_direct=True
+	list_position=False
+	list_instance=False
+	gr=False
 	if wikidatasearch['qid']:
 		qid = wikidatasearch['qid']
 		q_noun = wikidatasearch['q_noun']
@@ -275,14 +284,14 @@ def get_list(q_noun):
 						if ct>0:
 							value1=value1+", "	
 						value.append(data2['entities']['Q'+str(value_id)]['labels']['en']['value'])
-						value1=value1+rdata2['entities']['Q'+str(value_id)]['labels']['en']['value']
+						value1=value1+data2['entities']['Q'+str(value_id)]['labels']['en']['value']
 					else:
 						continue
 		else:
 			list_direct=False
 
 	elif not wikidatasearch['qid'] or list_direct==False:
-	
+		error = False
 		for i in np_tree:
 			NPs=""
 			nou=""
@@ -306,9 +315,8 @@ def get_list(q_noun):
 							nou=k[0]
 						else:
 							nou=nou+"+"+k[0]
-				q_noun.append(NPs)
 
-		wikidatasearch=wikidata_search(NPs)
+		wikidatasearch=wikidata_search([NPs])
 		if wikidatasearch['qid']:
 			qid=wikidatasearch['qid']
 			app.logger.info(repr("Qid  : "+qid))
@@ -316,7 +324,7 @@ def get_list(q_noun):
 			qid = False
 			error = True
 
-		wikidatasearch=wikidata_search(nou)
+		wikidatasearch=wikidata_search([nou])
 		if wikidatasearch['qid']:
 			qid1=wikidatasearch['qid']
 			app.logger.info(repr("Qid  : "+qid1))
@@ -497,6 +505,7 @@ def get_description(q_noun):
 def get_property(q_noun):
 	ptyl = False
 	pty=[]
+	b = False
 	for idx,i in enumerate(q_noun):			#search for property in the DB with 2 entries of q_noun
 		for jdx, j in enumerate(q_noun[idx+1:]):
 			ptyl = Properties.query.filter(Properties.label.like("%"+i+"%"+j+"%")).all()		#searches in label
@@ -554,7 +563,7 @@ def get_general(q_noun,pty):
 	else:
 		val = False
 	if qid:
-		data=wikidata_get_entity(qid)
+		data = wikidata_get_entity(qid)
 
 		if 'claims' in data['entities'][qid]:		#checks whether entity has any statements		
 			for prop in pty:
