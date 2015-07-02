@@ -36,68 +36,102 @@ def index():
 		parsed = parse(q_tagged)
 		q_noun = parsed['q_noun']
 		typ = parsed['type']
+		noun_save = parsed['noun_save']
 
-	if typ == "keyword":
-		app.logger.info(repr("keyword"))
-		quest = []
-		quest.append(question)
-		searched = wikidata_search(quest)
-		qid = searched['qid']
+		ques = History.query.filter_by(q_noun = noun_save).first()
+		if ques:
+			if ques.content == "list":
+				answer = []
+				word=""
+				for i in ques.answer:
+					if i == ",":
 
-		if qid == False:
-			answer = searchwiki(question.replace(' ','+'))
-			if answer == False:
-				answer = "As of now, the System is unable to answer the question."
-
-		else:
-			app.logger.info(repr(qid))
-			data = wikidata_get_entity(qid)
-			if 'description' in data['entities'][qid]:
-				answer = data['entities'][qid]['description']['en']['value']
+						answer.append(word)
+						word=""
+					else:
+						word = word+str(i)
+				answer = [tuple(answer[i:i+3]) for i in range(0, len(answer), 3)]
+				app.logger.info(repr(answer))
 			else:
-				answer = data['entities'][qid]['descriptions']['en']['value']
-
-		value = {'question':question,'answer':answer, 'content' : "string"}
+				answer = ques.answer
 
 
-	if typ == "list":
-		app.logger.info(repr("list"))
-		
-		np_tree=parsed['np_tree']
-		value = get_list(q_noun,np_tree)
-		if value==True:
-			value = "As of now, the System is unable to answer the question."
+			value = {'question':question,'answer':answer, 'content' : ques.content}
+			typ = "From history"
+
+
+		if typ == "keyword":
+			app.logger.info(repr("keyword"))
+			quest = []
+			quest.append(question)
+			searched = wikidata_search(quest)
+			qid = searched['qid']
+
+			if qid == False:
+				answer = searchwiki(question.replace(' ','+'))
+				if answer == False:
+					answer = "As of now, the System is unable to answer the question."
+
+			else:
+				app.logger.info(repr(qid))
+				data = wikidata_get_entity(qid)
+				if 'description' in data['entities'][qid]:
+					answer = data['entities'][qid]['description']['en']['value']
+				else:
+					answer = data['entities'][qid]['descriptions']['en']['value']
+
 			value = {'question':question,'answer':answer, 'content' : "string"}
-	if typ == "general":
-		app.logger.info(repr("general"))
-		result = get_property(q_noun)
-		if result:
-			pty = result['property']
-			q_noun = result['q_noun']
-			value = get_general(q_noun,pty)
-		else:
-			answer = "As of now, the System is unable to answer the question."
-			value = {'question':question,'answer':answer, 'content' : "string"}
-		
-	if typ == "distance":
-		app.logger.info(repr("distance"))
-		value = get_distance(q_noun)
-		if not value:
-			answer = "As of now, the System is unable to answer the question."
-			value = {'question':question,'answer':answer, 'content' : "string"}
-	if typ == "time":
-		app.logger.info(repr("time"))
-		answer = get_date(q_noun)
-		value = {'question':question,'answer':answer, 'content' : "string"}
 
-	if typ == "description":
-		app.logger.info(repr("description"))
-		value = get_description(q_noun)
-		if not value:
-			value = {'question':question,'answer':"As of now, the System is unable to answer the question.", 'content' : "string"}			
-	flash(value,'success')
-	app.logger.info(repr(value))
-	return render_template('index.html',page="home")
+
+		if typ == "list":
+			app.logger.info(repr("list"))
+			
+			np_tree=parsed['np_tree']
+			value = get_list(q_noun,np_tree)
+			if value==True:
+				value = "As of now, the System is unable to answer the question."
+				value = {'question':question,'answer':answer, 'content' : "string"}
+		if typ == "general":
+			app.logger.info(repr("general"))
+			result = get_property(q_noun)
+			if result:
+				pty = result['property']
+				q_noun = result['q_noun']
+				value = get_general(q_noun,pty)
+			else:
+				answer = "As of now, the System is unable to answer the question."
+				value = {'question':question,'answer':answer, 'content' : "string"}
+			
+		if typ == "distance":
+			app.logger.info(repr("distance"))
+			value = get_distance(q_noun)
+			if not value:
+				answer = "As of now, the System is unable to answer the question."
+				value = {'question':question,'answer':answer, 'content' : "string"}
+		if typ == "time":
+			app.logger.info(repr("time"))
+			answer = get_date(q_noun)
+			value = {'question':question,'answer':answer, 'content' : "string"}
+
+		if typ == "description":
+			app.logger.info(repr("description"))
+			value = get_description(q_noun)
+			if not value:
+				value = {'question':question,'answer':"As of now, the System is unable to answer the question.", 'content' : "string"}
+
+		if typ !="From history":
+			answer = ""
+			if value['content']=="list":
+				for jdx,j in enumerate(value['answer']):
+					for i in value['answer'][jdx]:
+						answer += str(i) + ", "
+				saveqa(question,noun_save,answer,value['content'])
+			else:
+				saveqa(question,noun_save,value['answer'],value['content'])
+			
+		flash(value,'success')
+		app.logger.info(repr(value))
+		return render_template('index.html',page="home",history=history)
 
 
 
@@ -159,9 +193,15 @@ def parse(q_tagged):
 
 
 
+
 	grammar = {'q_noun':q_noun, 'grammar':grmr,'np_tree':np_tree}
 
 	parsed = qcheck(grammar)
+	noun_save = ""
+	for a in q_noun:
+		noun_save += " | " + a.lower()
+
+	parsed['noun_save'] = noun_save
 
 	return parsed
 
@@ -671,7 +711,6 @@ def searchwiki(question):
 		answer = False
 
 	return answer
-
 
 
 if __name__ == '__main__':

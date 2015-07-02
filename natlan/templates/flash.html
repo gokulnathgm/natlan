@@ -22,8 +22,12 @@
                                   {% for q in message['answer'] %}
                                   <tr>
                                     <td class="col-md-4">{{i|string() + ") "+ q[0]}}</td>
+                                    {% if q[1] %}
                                     <td class="col-md-4">{{(i+1)|string() + ") "+ q[1]}}</td>
+                                    {% endif %}
+                                    {% if q[2] %}
                                     <td class="col-md-4">{{(i+2)|string() + ") "+ q[2]}}</td>
+                                    {% endif %}
                                   </tr>                                                     
                                   {% set i = i +3 %}
                                   {% endfor %}
