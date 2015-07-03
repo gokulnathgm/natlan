@@ -15,6 +15,25 @@
                 {% if message['content'] == "media" %}
                   <p><img style="max-height:150px" src="{{message['answer']}}"/></p>
                 {% endif %}
+                {% if message['content'] == "list" %}
+                    <table id="answer" style="background-color:#62C462;">
+                      <tbody>
+                                  {% set i = 1 %}
+                                  {% for q in message['answer'] %}
+                                  <tr>
+                                    <td class="col-md-4">{{i|string() + ") "+ q[0]}}</td>
+                                    {% if q[1] %}
+                                    <td class="col-md-4">{{(i+1)|string() + ") "+ q[1]}}</td>
+                                    {% endif %}
+                                    {% if q[2] %}
+                                    <td class="col-md-4">{{(i+2)|string() + ") "+ q[2]}}</td>
+                                    {% endif %}
+                                  </tr>                                                     
+                                  {% set i = i +3 %}
+                                  {% endfor %}
+                      </tbody>
+                    </table>
+                {% endif %}
                 </div>
           </div>
         
